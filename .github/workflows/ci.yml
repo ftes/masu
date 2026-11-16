@@ -179,17 +179,19 @@ jobs:
 
   # One job for each browser engine. The Chromium job keeps the name "e2e".
   #
-  # In Playwright's own image, whose browsers and their system packages are
-  # in it already: installing WebKit's packages from Ubuntu's mirrors took
-  # from a minute to half an hour (as in Issho). Erlang and Elixir come from
-  # hex.pm's builds for Ubuntu 24.04 (the image's), so nothing comes from apt.
+  # The browser tests of test/e2e (ExUnit, with playwright_ex), a port of
+  # e2e/specs: `mix test --only e2e`. In Playwright's own image, whose
+  # browsers and their system packages are in it already: installing
+  # WebKit's packages from Ubuntu's mirrors took from a minute to half an
+  # hour (as in Issho). Erlang and Elixir come from hex.pm's builds for
+  # Ubuntu 24.04 (the image's), so nothing comes from apt.
   e2e:
     name: ${{ matrix.browser == 'chromium' && 'e2e' || format('e2e ({0})', matrix.browser) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     container:
-      # Its version is e2e/package-lock.json's @playwright/test.
-      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      # Its version is playwright_ex's driver (deps/playwright/DRIVER_VERSION).
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
       options: --ipc=host
     env:
       # Firefox, run as root, wants its own home.
@@ -216,6 +218,7 @@ jobs:
           echo "/opt/beam/elixir/bin" >> "$GITHUB_PATH"
           echo "otp=$otp" >> "$GITHUB_OUTPUT"
           echo "elixir=$elixir" >> "$GITHUB_OUTPUT"
+          echo "playwright=$(grep -o '"playwright": {:hex, :playwright_ex, "[^"]*"' mix.lock | grep -o '[^"]*"$' | tr -d '"')" >> "$GITHUB_OUTPUT"
 
       - run: mix local.hex --force && mix local.rebar --force
 
@@ -224,30 +227,40 @@ jobs:
           path: |
             deps
             _build
-          key: mix-e2e-image-${{ steps.beam.outputs.elixir }}-${{ steps.beam.outputs.otp }}-${{ hashFiles('mix.lock') }}
+          key: mix-e2e-pwex-${{ steps.beam.outputs.elixir }}-${{ steps.beam.outputs.otp }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
-            mix-e2e-image-${{ steps.beam.outputs.elixir }}-${{ steps.beam.outputs.otp }}-
+            mix-e2e-pwex-${{ steps.beam.outputs.elixir }}-${{ steps.beam.outputs.otp }}-
+
+      # playwright_ex's driver (Node and playwright-core).
+      - uses: actions/cache@v6
+        with:
+          path: /root/.cache/playwright
+          key: playwright-ex-${{ steps.beam.outputs.playwright }}
 
       - run: mix deps.get
 
       - run: npm ci
         working-directory: assets
 
-      - run: npm ci
-        working-directory: e2e
-
-      # The Playwright web server runs `mix masu.build` (the real bundle)
-      # and starts `mix dev` without watchers.
-      - run: mix test.e2e
+      # The driver; the image has the browser and its system packages
+      # (PLAYWRIGHT_BROWSERS_PATH), so the install finds it there.
+      - run: mix playwright.install -- ${{ matrix.browser }}
         env:
-          CI: "true"
+          MIX_ENV: test
+
+      # test_helper.exs runs `mix masu.build` (the real bundle) and starts
+      # the development server (dev.exs) without watchers. A failed run is
+      # retried twice, as the Playwright config's `retries` on CI.
+      - name: mix test --only e2e
+        run: |
+          mix test --only e2e || { [ $? -eq 2 ] && { mix test --only e2e --failed || { [ $? -eq 2 ] && mix test --only e2e --failed; }; }; }
+        env:
+          MIX_ENV: test
           E2E_BROWSERS: ${{ matrix.browser }}
 
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: playwright-report-${{ matrix.browser }}
-          path: |
-            e2e/test-results
-            e2e/playwright-report
+          name: test-results-${{ matrix.browser }}
+          path: test-results
           retention-days: 7
