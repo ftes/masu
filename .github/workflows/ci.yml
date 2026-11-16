@@ -213,7 +213,9 @@ jobs:
           curl -fsSL "https://builds.hex.pm/builds/otp/amd64/ubuntu-24.04/OTP-$otp.tar.gz" | tar xz -C /opt/beam
           (cd "/opt/beam/OTP-$otp" && ./Install -minimal "/opt/beam/OTP-$otp" > /dev/null)
           curl -fsSL -o /tmp/elixir.zip "https://builds.hex.pm/builds/elixir/v$elixir.zip"
-          npx --yes extract-zip@2.0.1 /tmp/elixir.zip /opt/beam/elixir
+          # Python's zipfile: extract-zip leaves files out under the image's Node 26.
+          python3 -m zipfile -e /tmp/elixir.zip /opt/beam/elixir
+          chmod +x /opt/beam/elixir/bin/*
           echo "/opt/beam/OTP-$otp/bin" >> "$GITHUB_PATH"
           echo "/opt/beam/elixir/bin" >> "$GITHUB_PATH"
           echo "otp=$otp" >> "$GITHUB_OUTPUT"
