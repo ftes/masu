@@ -220,7 +220,7 @@ jobs:
           echo "/opt/beam/elixir/bin" >> "$GITHUB_PATH"
           echo "otp=$otp" >> "$GITHUB_OUTPUT"
           echo "elixir=$elixir" >> "$GITHUB_OUTPUT"
-          echo "playwright=$(grep -o '"playwright": {:hex, :playwright_ex, "[^"]*"' mix.lock | grep -o '[^"]*"$' | tr -d '"')" >> "$GITHUB_OUTPUT"
+          echo "playwright=$(grep -o '"playwright": {:git, "[^"]*", "[^"]*"' mix.lock | grep -o '[^"]*"$' | tr -d '"')" >> "$GITHUB_OUTPUT"
 
       - run: mix local.hex --force && mix local.rebar --force
 
@@ -246,7 +246,7 @@ jobs:
 
       # The driver; the image has the browser and its system packages
       # (PLAYWRIGHT_BROWSERS_PATH), so the install finds it there.
-      - run: mix playwright.install -- ${{ matrix.browser }}
+      - run: mix playwright.install ${{ matrix.browser }}
         env:
           MIX_ENV: test
 
