@@ -987,6 +987,8 @@ defmodule MasuE2E.GridLayoutTest do
          %{page: page} = ctx do
       open_page(page, "/views?as=#{person("ada")}")
       Page.locator(page, ".masu-search") |> Locator.fill!("Oslo")
+      # The search applies after a pause in the typing.
+      grid(page, "views") |> Expect.not_() |> Expect.to_have_attribute!("aria-rowcount", "10001")
       settled(page, "views")
       header(page, "views", "revenue") |> Locator.click!()
       header(page, "views", "revenue") |> Locator.click!()
