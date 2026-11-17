@@ -57,4 +57,12 @@ end
 
 # The :build tests run `mix masu.build` (npm and network on the first
 # run) and `mix hex.build`: `mix test --include build`.
+# Perf experiment: a timeline of the run, and tracing off.
+if f = System.get_env("E2E_TIMELINE"), do: Code.require_file(f)
+
+if System.get_env("E2E_TRACE") == "off" do
+  config = Application.get_env(:playwright, :test, [])
+  Application.put_env(:playwright, :test, Keyword.merge(config, trace: :off, screenshot: :off))
+end
+
 ExUnit.start(exclude: [:build, :e2e])

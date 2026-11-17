@@ -1,209 +1,27 @@
 name: ci
 
+# Perf experiment (Firefox): the port with and without tracing, against the
+# original JS suite on Playwright 1.56.1 (its pin) and 1.65.0 (the port's).
 on:
   pull_request:
-  push:
-    branches: [main]
 
 jobs:
-  # The suite on each database (MASU_DB). The SQLite job keeps the name
-  # "test" and runs the checks that do not depend on the database.
-  test:
-    name: ${{ matrix.db == 'sqlite' && 'test' || format('test ({0})', matrix.db) }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        db: [sqlite, postgres, mysql]
-
-    env:
-      MASU_DB: ${{ matrix.db }}
-
-    # An empty image starts no container: each job has its own database.
-    services:
-      postgres:
-        image: ${{ matrix.db == 'postgres' && 'postgres:16' || '' }}
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
-
-      mysql:
-        image: ${{ matrix.db == 'mysql' && 'mysql:8.0' || '' }}
-        env:
-          MYSQL_ROOT_PASSWORD: mysql
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd "mysqladmin ping -h 127.0.0.1 -pmysql" --health-interval 5s
-          --health-timeout 5s --health-retries 20
-
-    steps:
-      - uses: actions/checkout@v7
-
-      # Erlang and Elixir exactly as in .tool-versions.
-      - uses: erlef/setup-beam@v1
-        id: beam
-        with:
-          version-file: .tool-versions
-          version-type: strict
-
-      - uses: actions/cache@v6
-        with:
-          path: |
-            deps
-            _build
-          key: mix-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
-          restore-keys: |
-            mix-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
-
-      - uses: actions/cache@v6
-        if: matrix.db == 'sqlite'
-        with:
-          path: priv/plts
-          key: plt-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
-          restore-keys: |
-            plt-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
-
-      # All environments: credo and the tests run in :test, ex_doc and
-      # dialyxir in :dev.
-      - run: mix deps.get
-
-      # The bundles are built only for a release. Empty files let the
-      # package compile and the tests run without Node.js; the tests that
-      # need the real bundle are tagged :build, and the e2e job builds.
-      - name: Seed fake assets
-        run: |
-          mkdir -p priv/static
-          touch priv/static/masu.esm.js priv/static/masu.cjs.js priv/static/masu.css priv/static/masu-sumi.css
-
-      - run: mix format --check-formatted
-        if: matrix.db == 'sqlite'
-
-      - run: mix compile --warnings-as-errors
-        env:
-          MIX_ENV: test
-
-      - run: mix credo --strict
-        if: matrix.db == 'sqlite'
-        env:
-          MIX_ENV: test
-
-      - run: mix docs
-        if: matrix.db == 'sqlite'
-        env:
-          MIX_ENV: dev
-
-      - run: mix test --exclude build
-        env:
-          MIX_ENV: test
-
-      - run: mix dialyzer
-        if: matrix.db == 'sqlite'
-        env:
-          MIX_ENV: dev
-
-  # The lowest Elixir that mix.exs accepts (~> 1.18, for the built-in JSON
-  # module), with the lowest Phoenix (1.7) and LiveView (1.1) that it
-  # accepts (MASU_OLDEST), so that the floors stay true. Format, credo,
-  # docs and dialyzer run only in the test job. OTP 27.2.2, not 27.2: before it,
-  # public_key refused a CA certificate with the serverAuth extended key
-  # usage, as in the chain of builds.hex.pm, so setup-beam could not
-  # install Rebar or Hex.
-  floor:
-    runs-on: ubuntu-latest
-
-    env:
-      MASU_OLDEST: "1"
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: erlef/setup-beam@v1
-        id: beam
-        with:
-          elixir-version: "1.18.3"
-          otp-version: "27.2.2"
-          version-type: strict
-
-      - uses: actions/cache@v6
-        with:
-          path: |
-            deps
-            _build
-          key: mix-oldest-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
-          restore-keys: |
-            mix-oldest-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
-
-      - name: Seed fake assets
-        run: |
-          mkdir -p priv/static
-          touch priv/static/masu.esm.js priv/static/masu.cjs.js priv/static/masu.css priv/static/masu-sumi.css
-
-      # mix.lock has the newest Phoenix and LiveView: resolve the oldest.
-      - run: mix deps.update phoenix phoenix_live_view
-
-      - run: mix deps.get
-
-      - run: mix compile --warnings-as-errors
-        env:
-          MIX_ENV: test
-
-      - run: mix test --exclude build
-        env:
-          MIX_ENV: test
-
-  # The unit tests of the TypeScript modules, and the type check.
-  js:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .tool-versions
-          cache: npm
-          cache-dependency-path: assets/package-lock.json
-
-      - run: npm ci
-        working-directory: assets
-
-      - run: npm run typecheck
-        working-directory: assets
-
-      - run: npm test
-        working-directory: assets
-
-  # One job for each browser engine. The Chromium job keeps the name "e2e".
-  #
-  # The browser tests of test/e2e (ExUnit, with playwright_ex), a port of
-  # e2e/specs: `mix test --only e2e`. In Playwright's own image, whose
-  # browsers and their system packages are in it already: installing
-  # WebKit's packages from Ubuntu's mirrors took from a minute to half an
-  # hour (as in Issho). Erlang and Elixir come from hex.pm's builds for
-  # Ubuntu 24.04 (the image's), so nothing comes from apt.
-  e2e:
-    name: ${{ matrix.browser == 'chromium' && 'e2e' || format('e2e ({0})', matrix.browser) }}
+  port:
+    name: port ff ${{ matrix.trace }} ${{ matrix.rep }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     container:
-      # Its version is playwright_ex's driver (deps/playwright/DRIVER_VERSION).
       image: mcr.microsoft.com/playwright:v1.65.0-noble
       options: --ipc=host
     env:
-      # Firefox, run as root, wants its own home.
       HOME: /root
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, firefox, webkit]
-
+        trace: [trace, notrace]
+        rep: [1, 2, 3]
     steps:
       - uses: actions/checkout@v7
-
       - name: Erlang and Elixir, as in .tool-versions
         id: beam
         run: |
@@ -213,17 +31,14 @@ jobs:
           curl -fsSL "https://builds.hex.pm/builds/otp/amd64/ubuntu-24.04/OTP-$otp.tar.gz" | tar xz -C /opt/beam
           (cd "/opt/beam/OTP-$otp" && ./Install -minimal "/opt/beam/OTP-$otp" > /dev/null)
           curl -fsSL -o /tmp/elixir.zip "https://builds.hex.pm/builds/elixir/v$elixir.zip"
-          # Python's zipfile: extract-zip leaves files out under the image's Node 26.
-          python3 -m zipfile -e /tmp/elixir.zip /opt/beam/elixir
+          if command -v python3; then python3 -m zipfile -e /tmp/elixir.zip /opt/beam/elixir; else npx --yes extract-zip@2.0.1 /tmp/elixir.zip /opt/beam/elixir; fi
           chmod +x /opt/beam/elixir/bin/*
           echo "/opt/beam/OTP-$otp/bin" >> "$GITHUB_PATH"
           echo "/opt/beam/elixir/bin" >> "$GITHUB_PATH"
           echo "otp=$otp" >> "$GITHUB_OUTPUT"
           echo "elixir=$elixir" >> "$GITHUB_OUTPUT"
           echo "playwright=$(grep -o '"playwright": {:hex, :playwright_ex, "[^"]*"' mix.lock | grep -o '[^"]*"$' | tr -d '"')" >> "$GITHUB_OUTPUT"
-
       - run: mix local.hex --force && mix local.rebar --force
-
       - uses: actions/cache@v6
         with:
           path: |
@@ -232,37 +47,92 @@ jobs:
           key: mix-e2e-pwex-${{ steps.beam.outputs.elixir }}-${{ steps.beam.outputs.otp }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
             mix-e2e-pwex-${{ steps.beam.outputs.elixir }}-${{ steps.beam.outputs.otp }}-
-
-      # playwright_ex's driver (Node and playwright-core).
       - uses: actions/cache@v6
         with:
           path: /root/.cache/playwright
           key: playwright-ex-${{ steps.beam.outputs.playwright }}
-
       - run: mix deps.get
-
       - run: npm ci
         working-directory: assets
-
-      # The driver; the image has the browser and its system packages
-      # (PLAYWRIGHT_BROWSERS_PATH), so the install finds it there.
-      - run: mix playwright.install -- ${{ matrix.browser }}
+      - run: mix playwright.install -- firefox
         env:
           MIX_ENV: test
-
-      # test_helper.exs runs `mix masu.build` (the real bundle) and starts
-      # the development server (dev.exs) without watchers. A failed run is
-      # retried twice, as the Playwright config's `retries` on CI.
+      - run: nproc; cat /proc/cpuinfo | grep "model name" | head -1; free -m
       - name: mix test --only e2e
-        run: |
-          mix test --only e2e || { [ $? -eq 2 ] && { mix test --only e2e --failed || { [ $? -eq 2 ] && mix test --only e2e --failed; }; }; }
+        run: mix test --only e2e || true
         env:
           MIX_ENV: test
-          E2E_BROWSERS: ${{ matrix.browser }}
-
+          E2E_BROWSERS: firefox
+          E2E_TIMELINE: test/perf/timeline_formatter.exs
+          E2E_TIMELINE_OUT: timeline.tsv
+          E2E_TRACE: ${{ matrix.trace == 'notrace' && 'off' || 'on' }}
+      - run: python3 -I test/perf/analyze.py timeline.tsv --tests
       - uses: actions/upload-artifact@v7
-        if: failure()
         with:
-          name: test-results-${{ matrix.browser }}
-          path: test-results
-          retention-days: 7
+          name: port-${{ matrix.trace }}-${{ matrix.rep }}
+          path: timeline.tsv
+
+  js:
+    name: js ff ${{ matrix.pw }} ${{ matrix.rep }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v${{ matrix.pw }}-noble
+      options: --ipc=host
+    env:
+      HOME: /root
+    strategy:
+      fail-fast: false
+      matrix:
+        pw: ["1.56.1", "1.65.0"]
+        rep: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Erlang and Elixir, as in .tool-versions
+        id: beam
+        run: |
+          otp=$(awk '$1 == "erlang" { print $2 }' .tool-versions)
+          elixir=$(awk '$1 == "elixir" { print $2 }' .tool-versions)
+          mkdir -p /opt/beam/elixir
+          curl -fsSL "https://builds.hex.pm/builds/otp/amd64/ubuntu-24.04/OTP-$otp.tar.gz" | tar xz -C /opt/beam
+          (cd "/opt/beam/OTP-$otp" && ./Install -minimal "/opt/beam/OTP-$otp" > /dev/null)
+          curl -fsSL -o /tmp/elixir.zip "https://builds.hex.pm/builds/elixir/v$elixir.zip"
+          if command -v python3; then python3 -m zipfile -e /tmp/elixir.zip /opt/beam/elixir; else npx --yes extract-zip@2.0.1 /tmp/elixir.zip /opt/beam/elixir; fi
+          chmod +x /opt/beam/elixir/bin/*
+          echo "/opt/beam/OTP-$otp/bin" >> "$GITHUB_PATH"
+          echo "/opt/beam/elixir/bin" >> "$GITHUB_PATH"
+          echo "otp=$otp" >> "$GITHUB_OUTPUT"
+          echo "elixir=$elixir" >> "$GITHUB_OUTPUT"
+      - run: mix local.hex --force && mix local.rebar --force
+      - uses: actions/cache@v6
+        with:
+          path: |
+            deps
+            _build
+          key: mix-e2e-image-${{ steps.beam.outputs.elixir }}-${{ steps.beam.outputs.otp }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            mix-e2e-image-${{ steps.beam.outputs.elixir }}-${{ steps.beam.outputs.otp }}-
+      - run: mix deps.get
+      - run: npm ci
+        working-directory: assets
+      - run: npm ci
+        working-directory: e2e
+      - if: matrix.pw != '1.56.1'
+        run: npm install --no-save @playwright/test@${{ matrix.pw }}
+        working-directory: e2e
+      # The server compiles here, so that the tests' time has none of it.
+      - run: mix do compile + masu.build
+        env:
+          MIX_ENV: dev
+      - run: nproc; cat /proc/cpuinfo | grep "model name" | head -1; free -m
+      - run: npx playwright test --retries=0 --reporter=list,json || true
+        working-directory: e2e
+        env:
+          CI: "true"
+          E2E_BROWSERS: firefox
+          PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
+      - run: if command -v python3; then python3 -I test/perf/analyze.py e2e/results.json --tests; fi
+      - uses: actions/upload-artifact@v7
+        with:
+          name: js-${{ matrix.pw }}-${{ matrix.rep }}
+          path: e2e/results.json
