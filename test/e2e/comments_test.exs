@@ -39,8 +39,8 @@ defmodule MasuE2E.CommentsTest do
   test "a thread on a cell: its place in words, and its mark on the cell, in each person's order",
        ctx do
     room = room_name("comments")
-    ada = new_page(ctx, locale: "en-GB")
-    alan = new_page(ctx, locale: "en-GB")
+    ada = ctx.browser |> Browser.new_context!(locale: "en-GB") |> BrowserContext.new_page!()
+    alan = ctx.browser |> Browser.new_context!(locale: "en-GB") |> BrowserContext.new_page!()
     errors = collector()
     Page.on(ada, :page_error, &push(errors, Exception.message(&1)))
     open_page(ada, "/comments?as=Ada&room=#{room}")

@@ -1,7 +1,7 @@
 defmodule MasuE2E.Support do
   @moduledoc "Helpers for the browser tests (e2e/specs/support.ts)."
 
-  alias Playwright.{Browser, BrowserContext, Expect, Locator, Page, WebSocketRoute}
+  alias Playwright.{Expect, Locator, Page, WebSocketRoute}
 
   @doc "Opens a page and waits for the LiveView to connect and the grid to draw its rows."
   def open_page(page, path \\ "/") do
@@ -30,24 +30,6 @@ defmodule MasuE2E.Support do
   @doc "Waits for the grid to apply its last query."
   def settled(page, id) do
     page |> Page.locator("##{id}") |> Expect.not_() |> Expect.to_have_class!(~r/masu-busy/)
-  end
-
-  # Not in support.ts: what Playwright Test and JS give the specs.
-
-  @doc """
-  `browser.newContext(options)` in a test: Playwright Test gives such a
-  context the project's options (the device) too.
-  """
-  def new_context(%{browser: browser, device: device}, options \\ []) do
-    Browser.new_context!(browser, Map.merge(device, Map.new(options)))
-  end
-
-  @doc "`(await browser.newContext(options)).newPage()`."
-  def new_page(ctx, options \\ []), do: ctx |> new_context(options) |> BrowserContext.new_page!()
-
-  @doc "`browser.newPage(options)`: a page in a context of its own, closed with the page."
-  def browser_page(%{browser: browser, device: device}, options) do
-    Browser.new_page!(browser, Map.merge(device, Map.new(options)))
   end
 
   @doc "JS's `Number(text)` of a number's text: an integer or a float."

@@ -551,8 +551,8 @@ defmodule MasuE2E.GridTwoPeopleTest do
     test "an edit shows in the other browser, and an edit of a cell changed meanwhile is refused",
          ctx do
       room = room_name("conflict")
-      ada = new_page(ctx, locale: "en-GB")
-      alan = new_page(ctx, locale: "en-GB")
+      ada = ctx.browser |> Browser.new_context!(locale: "en-GB") |> BrowserContext.new_page!()
+      alan = ctx.browser |> Browser.new_context!(locale: "en-GB") |> BrowserContext.new_page!()
       open_page(ada, "/together?as=Ada&room=#{room}&presence=0")
       open_page(alan, "/together?as=Alan&room=#{room}&presence=0")
       cell = fn page, row, col -> Page.locator(page, "#together-r#{row}-c#{col}") end
@@ -590,7 +590,7 @@ defmodule MasuE2E.GridPresenceTest do
     room = room_name(prefix)
 
     open = fn name, params ->
-      page = new_page(ctx, locale: "en-GB")
+      page = ctx.browser |> Browser.new_context!(locale: "en-GB") |> BrowserContext.new_page!()
       open_page(page, "/together?as=#{name}&room=#{room}&rows=300#{params}")
       page
     end
@@ -605,7 +605,7 @@ defmodule MasuE2E.GridPresenceTest do
       room = room_name("presence")
 
       open = fn name ->
-        page = new_page(ctx, locale: "en-GB")
+        page = ctx.browser |> Browser.new_context!(locale: "en-GB") |> BrowserContext.new_page!()
         open_page(page, "/together?as=#{name}&room=#{room}")
         page
       end
@@ -767,7 +767,7 @@ defmodule MasuE2E.GridPresenceTest do
       room = room_name("range")
 
       open = fn name ->
-        page = new_page(ctx, locale: "en-GB")
+        page = ctx.browser |> Browser.new_context!(locale: "en-GB") |> BrowserContext.new_page!()
         open_page(page, "/together?as=#{name}&room=#{room}")
         page
       end
@@ -997,7 +997,7 @@ defmodule MasuE2E.GridLayoutTest do
       Expect.to_have_url!(page, ~r/views\[hide\]=email%2Cseats/)
       Expect.to_have_url!(page, ~r/views\[sort\]=-revenue/)
 
-      other = new_page(ctx, locale: "en-GB")
+      other = ctx.browser |> Browser.new_context!(locale: "en-GB") |> BrowserContext.new_page!()
 
       open_page(
         other,
@@ -1045,7 +1045,7 @@ defmodule MasuE2E.GridLayoutTest do
       Expect.poll!(fn -> headers(page) end, &refute("City" in &1))
       header(page, "views", "seats") |> Expect.to_have_attribute!("aria-sort", "ascending")
 
-      alan = new_page(ctx, locale: "en-GB")
+      alan = ctx.browser |> Browser.new_context!(locale: "en-GB") |> BrowserContext.new_page!()
       open_page(alan, "/views?as=#{person("alan")}")
       Expect.poll!(fn -> headers(alan) end, &assert("City" in &1))
       Page.get_by_role(alan, :button, name: "Views") |> Locator.click!()

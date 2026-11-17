@@ -7,7 +7,8 @@ defmodule MasuE2E.Case do
   for each engine with its desktop device. E2E_BROWSERS picks some of
   them (comma-separated, for example "firefox" or "chromium,webkit"); the
   default is all three. A `@tag use: [...]` (or `@describetag`) is
-  Playwright Test's `test.use({...})`: context options over the device's.
+  Playwright Test's `test.use({...})`: context options over the device's
+  (`context_options/1`, for every context of a test).
   """
 
   use ExUnit.CaseTemplate
@@ -34,9 +35,19 @@ defmodule MasuE2E.Case do
     end)
   end
 
+  @doc """
+  The project's device with the test's `use:` tag over it, for each context
+  of the test (`context_options:`, called at its registration).
+  """
+  def context_options(%{browser: browser, browser_name: name} = ctx) do
+    device = Map.fetch!(Playwright.devices(BrowserPool.playwright(browser)), @devices[name])
+    Map.merge(device, Map.new(ctx[:use] || []))
+  end
+
   using opts do
     quote do
       use Playwright.Test, unquote(opts)
+      use Playwright.Test, context_options: &MasuE2E.Case.context_options/1
 
       import MasuE2E.Support
 
@@ -59,13 +70,11 @@ defmodule MasuE2E.Case do
   end
 
   setup_all %{browser_name: name} do
-    browser = BrowserPool.browser(browser_name: name)
-    device = Map.fetch!(Playwright.devices(BrowserPool.playwright(browser)), @devices[name])
-    %{browser: browser, device: Map.delete(device, :default_browser_type)}
+    %{browser: BrowserPool.browser(browser_name: name)}
   end
 
-  setup %{browser: browser, device: device} = ctx do
-    context = Browser.new_context!(browser, Map.merge(device, Map.new(ctx[:use] || [])))
+  setup %{browser: browser} do
+    context = Browser.new_context!(browser)
     %{context: context, page: BrowserContext.new_page!(context)}
   end
 end

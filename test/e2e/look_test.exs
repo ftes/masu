@@ -119,7 +119,7 @@ defmodule MasuE2E.LookTest do
       # WebKit draws no box-shadow on a table's row group, so Lotus Web's
       # header has no line under it there (y = 48), where Masu's has.
       skip = if browser_name == :webkit, do: [48], else: []
-      lotus = browser_page(ctx, viewport: %{width: 800, height: 600})
+      lotus = Browser.new_page!(ctx.browser, viewport: %{width: 800, height: 600})
 
       Page.set_content!(
         lotus,
@@ -132,7 +132,7 @@ defmodule MasuE2E.LookTest do
       reference_box = Locator.bounding_box!(reference)
       a = Locator.screenshot!(reference)
 
-      page = browser_page(ctx, viewport: %{width: 800, height: 600})
+      page = Browser.new_page!(ctx.browser, viewport: %{width: 800, height: 600})
       open_page(page, "/look")
 
       if mode == "dark",
