@@ -28,6 +28,10 @@ if :e2e in Keyword.get(ExUnit.configuration(), :include, []) do
       Process.sleep(100)
       false
   end)
+
+  # Playwright Test's test timeout (30 s), not ExUnit's 60 s: a stuck test
+  # fails as soon as in the JS suite.
+  ExUnit.configure(timeout: 30_000)
 else
   # The Issho of the collaboration tests: a grid's people are those of its room.
   {:ok, _pid} =
