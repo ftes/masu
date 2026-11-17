@@ -39,8 +39,8 @@ export default defineConfig({
     locale: "en-GB",
     timezoneId: "Europe/Lisbon",
     // A failed test keeps its trace and a screenshot, in test-results/.
-    trace: "retain-on-failure",
-    screenshot: "only-on-failure",
+    trace: process.env.E2E_TRACE === "off" ? "off" : "retain-on-failure",
+    screenshot: process.env.E2E_TRACE === "off" ? "off" : "only-on-failure",
   },
   projects: (picked as Browser[]).map((name) => ({ name, use: { ...browsers[name] } })),
   webServer: {

@@ -1,7 +1,7 @@
 name: ci
 
 # Perf experiment (Firefox): the port with and without tracing, against the
-# original JS suite on Playwright 1.56.1 (its pin) and 1.65.0 (the port's).
+# original JS suite on Playwright 1.65.0 (the port's), both with and without tracing.
 on:
   pull_request:
 
@@ -59,7 +59,7 @@ jobs:
           MIX_ENV: test
       - run: nproc; cat /proc/cpuinfo | grep "model name" | head -1; free -m
       - name: mix test --only e2e
-        run: mix test --only e2e || true
+        run: mix test --only e2e --formatter ExUnit.CLIFormatter --formatter TimelineFormatter || true
         env:
           MIX_ENV: test
           E2E_BROWSERS: firefox
@@ -73,7 +73,7 @@ jobs:
           path: timeline.tsv
 
   js:
-    name: js ff ${{ matrix.pw }} ${{ matrix.rep }}
+    name: js ff ${{ matrix.pw }} ${{ matrix.trace }} ${{ matrix.rep }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     container:
@@ -84,7 +84,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pw: ["1.56.1", "1.65.0"]
+        pw: ["1.65.0"]
+        trace: [trace, notrace]
         rep: [1, 2, 3]
     steps:
       - uses: actions/checkout@v7
@@ -131,8 +132,9 @@ jobs:
           CI: "true"
           E2E_BROWSERS: firefox
           PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
+          E2E_TRACE: ${{ matrix.trace == 'notrace' && 'off' || 'on' }}
       - run: if command -v python3; then python3 -I test/perf/analyze.py e2e/results.json --tests; fi
       - uses: actions/upload-artifact@v7
         with:
-          name: js-${{ matrix.pw }}-${{ matrix.rep }}
+          name: js-${{ matrix.pw }}-${{ matrix.trace }}-${{ matrix.rep }}
           path: e2e/results.json

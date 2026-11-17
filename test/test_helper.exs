@@ -65,4 +65,9 @@ if System.get_env("E2E_TRACE") == "off" do
   Application.put_env(:playwright, :test, Keyword.merge(config, trace: :off, screenshot: :off))
 end
 
-ExUnit.start(exclude: [:build, :e2e])
+if w = System.get_env("E2E_WORKERS") do
+  config = Application.get_env(:playwright, :test, [])
+  Application.put_env(:playwright, :test, Keyword.put(config, :workers, String.to_integer(w)))
+end
+
+ExUnit.start(exclude: [:build, :e2e], timeout: 30_000)
