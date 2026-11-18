@@ -67,7 +67,7 @@ defmodule Masu.MixProject do
       {:lazy_html, "~> 0.1", only: :test},
       # The browser tests in test/e2e: `mix test --only e2e`.
       {:playwright,
-       github: "ftes/playwright_ex", ref: "0217c3445a6845750cdd2a9ce0355588b0147356", only: :test},
+       github: "ftes/playwright_ex", ref: "5fe2de9880c7b7b7b53c947e4ed18ca21d3512cc", only: :test},
       {:phoenix, if(@oldest, do: "~> 1.7.14", else: "~> 1.7.14 or ~> 1.8")},
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.6", only: :dev},

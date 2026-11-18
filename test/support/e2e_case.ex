@@ -4,11 +4,10 @@ defmodule MasuE2E.Case do
   to ExUnit with playwright_ex: `mix test --only e2e`.
 
   Playwright Test's projects are `parameterize:` over `projects/0`, one
-  for each engine with its desktop device. E2E_BROWSERS picks some of
-  them (comma-separated, for example "firefox" or "chromium,webkit"); the
-  default is all three. A `@tag use: [...]` (or `@describetag`) is
-  Playwright Test's `test.use({...})`: context options over the device's
-  (`context_options/1`, for every context of a test).
+  for each engine with its desktop device, which picks the browser, and a
+  `browser_name` parameter, Playwright Test's `browserName` fixture.
+  E2E_BROWSERS picks some of them (comma-separated, for example "firefox"
+  or "chromium,webkit"); the default is all three.
   """
 
   use ExUnit.CaseTemplate
@@ -31,23 +30,14 @@ defmodule MasuE2E.Case do
         raise ~s(E2E_BROWSERS: unknown browser "#{name}", use chromium, firefox or webkit)
       end
 
-      %{browser_name: String.to_atom(name)}
+      name = String.to_atom(name)
+      Map.put(Playwright.Test.parameters(Playwright.device(@devices[name])), :browser_name, name)
     end)
-  end
-
-  @doc """
-  The project's device with the test's `use:` tag over it, for each context
-  of the test (`context_options:`, called at its registration).
-  """
-  def context_options(%{browser: browser, browser_name: name} = ctx) do
-    device = Map.fetch!(Playwright.devices(BrowserPool.playwright(browser)), @devices[name])
-    Map.merge(device, Map.new(ctx[:use] || []))
   end
 
   using opts do
     quote do
       use Playwright.Test, unquote(opts)
-      use Playwright.Test, context_options: &MasuE2E.Case.context_options/1
 
       import MasuE2E.Support
 
@@ -69,8 +59,8 @@ defmodule MasuE2E.Case do
     end
   end
 
-  setup_all %{browser_name: name} do
-    %{browser: BrowserPool.browser(browser_name: name)}
+  setup_all do
+    %{browser: BrowserPool.browser()}
   end
 
   setup %{browser: browser} do

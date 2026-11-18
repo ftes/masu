@@ -70,7 +70,7 @@ defmodule MasuE2E.ResultsTest do
   end
 
   describe "in a browser far from UTC" do
-    @describetag use: [timezone_id: "Asia/Tokyo"]
+    @describetag Test.use(timezone_id: "Asia/Tokyo")
 
     test "a datetime without a zone filters as the cells show it, not moved to the browser's time",
          %{page: page} do
