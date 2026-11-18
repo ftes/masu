@@ -630,6 +630,8 @@ test.describe("layout and views", () => {
   test("the view goes into the URL, and the link opens it in another browser", async ({ page, browser }) => {
     await openPage(page, `/views?as=${person("ada")}`);
     await page.locator(".masu-search").fill("Oslo");
+    // The search applies after a pause in the typing.
+    await expect(grid(page, "views")).not.toHaveAttribute("aria-rowcount", "10001");
     await settled(page, "views");
     await header(page, "views", "revenue").click();
     await header(page, "views", "revenue").click();

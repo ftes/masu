@@ -48,7 +48,8 @@ defmodule Masu.MixProject do
 
   defp deps do
     [
-      {:bandit, "~> 1.5", only: :dev},
+      # The dev server (dev.exs), which the browser tests (test/e2e) start too.
+      {:bandit, "~> 1.5", only: [:dev, :test]},
       # The benchmarks in bench/: Benchee, and PostgreSQL for the Ecto source.
       {:benchee, "~> 1.3", only: :dev},
       {:ecto_sql, "~> 3.13", only: [:dev, :test]},
@@ -64,6 +65,8 @@ defmodule Masu.MixProject do
       {:issho, ">= 0.4.2 and < 0.7.0", optional: true},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:lazy_html, "~> 0.1", only: :test},
+      # The browser tests in test/e2e: `mix test --only e2e`.
+      {:playwright, "~> 1.65.0-rc.2", hex: :playwright_ex, only: :test},
       {:phoenix, if(@oldest, do: "~> 1.7.14", else: "~> 1.7.14 or ~> 1.8")},
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.6", only: :dev},
