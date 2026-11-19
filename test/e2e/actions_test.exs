@@ -6,9 +6,6 @@ defmodule MasuE2E.ActionsTest do
   # its end, and in the menu of its cells). Its columns: name, city, plan,
   # active.
 
-  defp menu(page), do: Page.locator(page, ~s(#actions [role="menu"]))
-  defp item(page, name), do: menu(page) |> Locator.get_by_role(:menuitem, name: name, exact: true)
-
   defp more(page, row),
     do: Page.locator(page, "#actions-r#{row}-actions .masu-row-actions-button")
 
@@ -28,39 +25,39 @@ defmodule MasuE2E.ActionsTest do
     inactive = Enum.find_index(rows, &(Enum.at(&1, 3) == ""))
 
     more(page, active) |> Locator.click!()
-    menu(page) |> Expect.to_have_attribute!("aria-label", "Row actions")
+    menu(page, "actions") |> Expect.to_have_attribute!("aria-label", "Row actions")
 
-    menu(page)
+    menu(page, "actions")
     |> Locator.get_by_role(:menuitem)
     |> Expect.to_have_text!(["Open", "Deactivate", "Remove"])
 
-    item(page, "Open") |> Expect.to_have_attribute!("href", ~r/\/actions\?open=\d+/)
+    item(page, "actions", "Open") |> Expect.to_have_attribute!("href", ~r/\/actions\?open=\d+/)
 
-    item(page, "Deactivate")
+    item(page, "actions", "Deactivate")
     |> Expect.not_()
     |> Expect.to_have_attribute!("aria-disabled", "true")
 
-    item(page, "Deactivate") |> Locator.click!()
+    item(page, "actions", "Deactivate") |> Locator.click!()
     task(page) |> Expect.to_have_text!("#{rows |> Enum.at(active) |> Enum.at(0)} deactivated")
     settled(page, "actions")
     Expect.poll!(fn -> Enum.at(row_text(page, "actions", active), 3) end, &assert(&1 == ""))
 
     more(page, inactive) |> Locator.click!()
-    item(page, "Deactivate") |> Expect.to_have_attribute!("aria-disabled", "true")
+    item(page, "actions", "Deactivate") |> Expect.to_have_attribute!("aria-disabled", "true")
     page |> Page.keyboard() |> Keyboard.press!("ArrowDown")
-    item(page, "Deactivate") |> Expect.to_be_focused!()
+    item(page, "actions", "Deactivate") |> Expect.to_be_focused!()
     page |> Page.keyboard() |> Keyboard.press!("Enter")
     # Not available: the menu stays, and nothing runs.
-    menu(page) |> Expect.to_be_visible!()
+    menu(page, "actions") |> Expect.to_be_visible!()
     page |> Page.keyboard() |> Keyboard.press!("Escape")
-    menu(page) |> Expect.to_have_count!(0)
+    menu(page, "actions") |> Expect.to_have_count!(0)
     grid(page, "actions") |> Expect.to_be_focused!()
   end
 
   test "a link patches the LiveView's URL, as a link does", %{page: page} do
     [name | _] = row_text(page, "actions", 0)
     more(page, 0) |> Locator.click!()
-    item(page, "Open") |> Locator.click!()
+    item(page, "actions", "Open") |> Locator.click!()
     Expect.to_have_url!(page, ~r/\/actions\?open=\d+$/)
     Page.locator(page, "#said") |> Expect.to_have_text!("Opened #{name}")
   end
@@ -71,11 +68,11 @@ defmodule MasuE2E.ActionsTest do
     Page.locator(page, "#actions-r1-c1") |> Locator.click!()
     page |> Page.keyboard() |> Keyboard.press!("Shift+F10")
 
-    menu(page)
+    menu(page, "actions")
     |> Locator.get_by_role(:menuitem)
     |> Expect.to_have_text!(["Open", "Deactivate", "Remove"])
 
-    menu(page) |> Locator.locator(":focus") |> Expect.to_have_text!("Open")
+    menu(page, "actions") |> Locator.locator(":focus") |> Expect.to_have_text!("Open")
     page |> Page.keyboard() |> Keyboard.press!("End")
     page |> Page.keyboard() |> Keyboard.press!("Enter")
 

@@ -404,8 +404,6 @@ end
 defmodule MasuE2E.GridEditingTest do
   use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
 
-  defp cell(page, row, col), do: Page.locator(page, "#customers-r#{row}-c#{col}")
-
   describe "editing" do
     setup %{page: page} do
       open_page(page, "/")
@@ -413,12 +411,12 @@ defmodule MasuE2E.GridEditingTest do
     end
 
     test "typing on a cell edits it, Enter saves and moves down", %{page: page} do
-      cell(page, 0, 1) |> Locator.click!()
+      cell(page, "customers", 0, 1) |> Locator.click!()
       page |> Page.keyboard() |> Keyboard.type!("Rui Freitas")
       Page.locator(page, "#customers .masu-editor") |> Expect.to_have_value!("Rui Freitas")
       page |> Page.keyboard() |> Keyboard.press!("Enter")
 
-      cell(page, 0, 1) |> Expect.to_have_text!("Rui Freitas")
+      cell(page, "customers", 0, 1) |> Expect.to_have_text!("Rui Freitas")
       Page.locator(page, "#customers .masu-editor") |> Expect.to_have_count!(0)
 
       grid(page, "customers")
@@ -428,14 +426,17 @@ defmodule MasuE2E.GridEditingTest do
     end
 
     test "the changeset's error goes on the cell, with the old value", %{page: page} do
-      cell(page, 1, 5) |> Locator.click!()
+      cell(page, "customers", 1, 5) |> Locator.click!()
       page |> Page.keyboard() |> Keyboard.press!("Enter")
       Page.locator(page, "#customers .masu-editor") |> Locator.fill!("0")
       page |> Page.keyboard() |> Keyboard.press!("Enter")
 
-      cell(page, 1, 5) |> Expect.to_have_attribute!("aria-invalid", "true")
-      cell(page, 1, 5) |> Expect.to_have_attribute!("title", "must be greater than 0")
-      cell(page, 1, 5) |> Expect.to_have_text!("75")
+      cell(page, "customers", 1, 5) |> Expect.to_have_attribute!("aria-invalid", "true")
+
+      cell(page, "customers", 1, 5)
+      |> Expect.to_have_attribute!("title", "must be greater than 0")
+
+      cell(page, "customers", 1, 5) |> Expect.to_have_text!("75")
 
       Page.locator(page, "#customers .masu-status")
       |> Expect.to_have_text!("Seats: must be greater than 0")
@@ -443,69 +444,69 @@ defmodule MasuE2E.GridEditingTest do
 
     test "Escape gives up, and undo and redo take an edit back and again", %{page: page} do
       keyboard = Page.keyboard(page)
-      cell(page, 2, 1) |> Locator.dblclick!()
+      cell(page, "customers", 2, 1) |> Locator.dblclick!()
       Keyboard.type!(keyboard, " Jr")
       Keyboard.press!(keyboard, "Escape")
-      cell(page, 2, 1) |> Expect.to_have_text!("Alan Matsumoto")
+      cell(page, "customers", 2, 1) |> Expect.to_have_text!("Alan Matsumoto")
 
-      cell(page, 2, 1) |> Locator.click!()
+      cell(page, "customers", 2, 1) |> Locator.click!()
       Keyboard.type!(keyboard, "Grace")
       Keyboard.press!(keyboard, "Tab")
-      cell(page, 2, 1) |> Expect.to_have_text!("Grace")
+      cell(page, "customers", 2, 1) |> Expect.to_have_text!("Grace")
 
       grid(page, "customers")
       |> Expect.to_have_attribute!("aria-activedescendant", "customers-r2-c2")
 
       Keyboard.press!(keyboard, "ControlOrMeta+z")
-      cell(page, 2, 1) |> Expect.to_have_text!("Alan Matsumoto")
+      cell(page, "customers", 2, 1) |> Expect.to_have_text!("Alan Matsumoto")
       Keyboard.press!(keyboard, "ControlOrMeta+Shift+z")
-      cell(page, 2, 1) |> Expect.to_have_text!("Grace")
+      cell(page, "customers", 2, 1) |> Expect.to_have_text!("Grace")
     end
 
     test "Space turns a boolean, and Delete empties the cells of a range", %{page: page} do
       keyboard = Page.keyboard(page)
-      cell(page, 0, 7) |> Locator.click!()
+      cell(page, "customers", 0, 7) |> Locator.click!()
       Keyboard.press!(keyboard, "Space")
-      cell(page, 0, 7) |> Expect.to_have_text!("")
+      cell(page, "customers", 0, 7) |> Expect.to_have_text!("")
       Keyboard.press!(keyboard, "Space")
-      cell(page, 0, 7) |> Expect.to_have_text!("✓")
+      cell(page, "customers", 0, 7) |> Expect.to_have_text!("✓")
 
-      cell(page, 0, 3) |> Locator.click!()
+      cell(page, "customers", 0, 3) |> Locator.click!()
       Keyboard.press!(keyboard, "Shift+ArrowDown")
       Keyboard.press!(keyboard, "Delete")
-      cell(page, 0, 3) |> Expect.to_have_text!("")
-      cell(page, 1, 3) |> Expect.to_have_text!("")
+      cell(page, "customers", 0, 3) |> Expect.to_have_text!("")
+      cell(page, "customers", 1, 3) |> Expect.to_have_text!("")
     end
 
     test "Ctrl+D fills a range down with its first row", %{page: page} do
-      cell(page, 5, 5) |> Locator.click!()
+      cell(page, "customers", 5, 5) |> Locator.click!()
       page |> Page.keyboard() |> Keyboard.press!("Shift+ArrowDown")
       page |> Page.keyboard() |> Keyboard.press!("Shift+ArrowDown")
       page |> Page.keyboard() |> Keyboard.press!("ControlOrMeta+d")
-      cell(page, 6, 5) |> Expect.to_have_text!("223")
-      cell(page, 7, 5) |> Expect.to_have_text!("223")
+      cell(page, "customers", 6, 5) |> Expect.to_have_text!("223")
+      cell(page, "customers", 7, 5) |> Expect.to_have_text!("223")
     end
 
     test "a row or a cell that its state makes read-only does not edit", %{page: page} do
       # Row 4 (Radia) is on the enterprise plan: the whole row is read-only.
-      cell(page, 3, 1) |> Expect.to_have_class!(~r/masu-locked/)
-      cell(page, 3, 1) |> Locator.click!()
+      cell(page, "customers", 3, 1) |> Expect.to_have_class!(~r/masu-locked/)
+      cell(page, "customers", 3, 1) |> Locator.click!()
       page |> Page.keyboard() |> Keyboard.type!("X")
       Page.locator(page, "#customers .masu-editor") |> Expect.to_have_count!(0)
-      cell(page, 3, 1) |> Expect.to_have_text!("Radia Berners-Lee")
+      cell(page, "customers", 3, 1) |> Expect.to_have_text!("Radia Berners-Lee")
 
       # Row 5 (Dennis) is not active: his revenue is read-only, his name is not.
-      cell(page, 4, 6) |> Expect.to_have_attribute!("aria-readonly", "true")
-      cell(page, 4, 1) |> Expect.to_have_attribute!("aria-readonly", "false")
-      cell(page, 4, 6) |> Locator.dblclick!()
+      cell(page, "customers", 4, 6) |> Expect.to_have_attribute!("aria-readonly", "true")
+      cell(page, "customers", 4, 1) |> Expect.to_have_attribute!("aria-readonly", "false")
+      cell(page, "customers", 4, 6) |> Locator.dblclick!()
       Page.locator(page, "#customers .masu-editor") |> Expect.to_have_count!(0)
     end
 
     test "a column with editable={false} does not edit", %{page: page} do
-      cell(page, 0, 0) |> Locator.click!()
+      cell(page, "customers", 0, 0) |> Locator.click!()
       page |> Page.keyboard() |> Keyboard.type!("9")
       Page.locator(page, "#customers .masu-editor") |> Expect.to_have_count!(0)
-      cell(page, 0, 0) |> Expect.to_have_text!("1")
+      cell(page, "customers", 0, 0) |> Expect.to_have_text!("1")
     end
   end
 end
@@ -514,8 +515,6 @@ end
 # a module of the Chromium project alone, so the other engines don't run it.
 defmodule MasuE2E.GridEditingChromiumTest do
   use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.chromium_projects()
-
-  defp cell(page, row, col), do: Page.locator(page, "#customers-r#{row}-c#{col}")
 
   describe "editing" do
     setup %{page: page} do
@@ -526,7 +525,7 @@ defmodule MasuE2E.GridEditingChromiumTest do
     test "a paste from a spreadsheet fills the cells from the active one",
          %{page: page, context: context} do
       BrowserContext.grant_permissions!(context, ["clipboard-read", "clipboard-write"])
-      cell(page, 5, 3) |> Locator.click!()
+      cell(page, "customers", 5, 3) |> Locator.click!()
 
       Page.evaluate!(
         page,
@@ -535,11 +534,14 @@ defmodule MasuE2E.GridEditingChromiumTest do
 
       page |> Page.keyboard() |> Keyboard.press!("ControlOrMeta+v")
 
-      cell(page, 5, 3) |> Expect.to_have_text!("Porto")
-      cell(page, 5, 4) |> Expect.to_have_text!("team")
-      cell(page, 6, 4) |> Expect.to_have_attribute!("aria-invalid", "true")
-      cell(page, 6, 3) |> Expect.to_have_attribute!("title", "Not saved: the row has an error.")
-      cell(page, 6, 3) |> Expect.to_have_text!("Porto")
+      cell(page, "customers", 5, 3) |> Expect.to_have_text!("Porto")
+      cell(page, "customers", 5, 4) |> Expect.to_have_text!("team")
+      cell(page, "customers", 6, 4) |> Expect.to_have_attribute!("aria-invalid", "true")
+
+      cell(page, "customers", 6, 3)
+      |> Expect.to_have_attribute!("title", "Not saved: the row has an error.")
+
+      cell(page, "customers", 6, 3) |> Expect.to_have_text!("Porto")
     end
   end
 end
@@ -1422,9 +1424,6 @@ end
 defmodule MasuE2E.GridNewRowsTest do
   use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
 
-  defp status(page), do: Page.locator(page, "#tasks > .masu-status")
-  defp cell(page, row, col), do: Page.locator(page, "#tasks-r#{row}-c#{col}")
-
   describe "new and deleted rows, and editors" do
     setup %{page: page} do
       open_page(page, "/tasks")
@@ -1437,36 +1436,36 @@ defmodule MasuE2E.GridNewRowsTest do
       keyboard = Page.keyboard(page)
       grid(page, "tasks") |> Expect.to_have_attribute!("aria-rowcount", "32")
       grid(page, "tasks") |> Locator.evaluate!("(el) => (el.scrollTop = el.scrollHeight)")
-      cell(page, 30, 0) |> Expect.to_have_text!("+ New row")
+      cell(page, "tasks", 30, 0) |> Expect.to_have_text!("+ New row")
 
       grid(page, "tasks") |> Locator.focus!()
       Keyboard.press!(keyboard, "Control+Enter")
-      status(page) |> Expect.to_have_text!("New row")
+      status(page, "tasks") |> Expect.to_have_text!("New row")
       Page.locator(page, "#tasks .masu-draft") |> Expect.to_have_count!(1)
       Keyboard.type!(keyboard, "Write the guide")
       Keyboard.press!(keyboard, "Enter")
       # Enter goes to the row below: "+ New row". The draft saves.
-      status(page) |> Expect.to_have_text!("Row added")
+      status(page, "tasks") |> Expect.to_have_text!("Row added")
       Page.locator(page, "#tasks .masu-draft") |> Expect.to_have_count!(0)
       grid(page, "tasks") |> Expect.to_have_attribute!("aria-rowcount", "33")
-      cell(page, 30, 0) |> Expect.to_have_text!("Write the guide")
-      cell(page, 30, 1) |> Expect.to_have_text!("todo")
+      cell(page, "tasks", 30, 0) |> Expect.to_have_text!("Write the guide")
+      cell(page, "tasks", 30, 1) |> Expect.to_have_text!("todo")
 
       # A draft with no title: refused, it stays, with the error on its cell.
-      cell(page, 31, 0) |> Locator.click!()
+      cell(page, "tasks", 31, 0) |> Locator.click!()
       Page.locator(page, "#tasks .masu-draft") |> Expect.to_have_count!(1)
       Keyboard.press!(keyboard, "ArrowRight")
       Keyboard.press!(keyboard, "ArrowRight")
       Keyboard.type!(keyboard, "2")
       Keyboard.press!(keyboard, "Enter")
-      status(page) |> Expect.to_have_text!("Title: can't be blank")
+      status(page, "tasks") |> Expect.to_have_text!("Title: can't be blank")
       Page.locator(page, "#tasks .masu-draft .masu-invalid") |> Expect.to_have_count!(1)
       grid(page, "tasks") |> Expect.to_have_attribute!("aria-rowcount", "34")
 
       # Escape lets it go.
       Keyboard.press!(keyboard, "ArrowUp")
       Keyboard.press!(keyboard, "Escape")
-      status(page) |> Expect.to_have_text!("New row discarded")
+      status(page, "tasks") |> Expect.to_have_text!("New row discarded")
       Page.locator(page, "#tasks .masu-draft") |> Expect.to_have_count!(0)
       grid(page, "tasks") |> Expect.to_have_attribute!("aria-rowcount", "33")
     end
@@ -1474,7 +1473,7 @@ defmodule MasuE2E.GridNewRowsTest do
     test "Ctrl+Delete deletes rows after a question, Ctrl+Z brings them back, and the bar deletes those selected",
          %{page: page} do
       keyboard = Page.keyboard(page)
-      cell(page, 0, 0) |> Locator.click!()
+      cell(page, "tasks", 0, 0) |> Locator.click!()
       Keyboard.press!(keyboard, "Shift+ArrowDown")
       Keyboard.press!(keyboard, "Control+Delete")
       question = Page.get_by_role(page, :alertdialog)
@@ -1490,13 +1489,13 @@ defmodule MasuE2E.GridNewRowsTest do
       |> Locator.get_by_role(:button, name: "Delete")
       |> Locator.click!()
 
-      status(page) |> Expect.to_have_text!("2 rows deleted")
-      cell(page, 0, 0) |> Expect.to_have_text!("Task 3")
+      status(page, "tasks") |> Expect.to_have_text!("2 rows deleted")
+      cell(page, "tasks", 0, 0) |> Expect.to_have_text!("Task 3")
 
       Keyboard.press!(keyboard, "Control+z")
-      status(page) |> Expect.to_have_text!("2 rows brought back")
-      cell(page, 0, 0) |> Expect.to_have_text!("Task 1")
-      cell(page, 1, 0) |> Expect.to_have_text!("Task 2")
+      status(page, "tasks") |> Expect.to_have_text!("2 rows brought back")
+      cell(page, "tasks", 0, 0) |> Expect.to_have_text!("Task 1")
+      cell(page, "tasks", 1, 0) |> Expect.to_have_text!("Task 2")
 
       # A row that is done does not delete (deletable); the others do.
       Page.locator(page, "#tasks-r2-c0 .masu-select") |> Locator.click!()
@@ -1508,22 +1507,22 @@ defmodule MasuE2E.GridNewRowsTest do
       |> Locator.get_by_role(:button, name: "Delete")
       |> Locator.click!()
 
-      status(page) |> Expect.to_have_text!("Row deleted This row cannot be deleted.")
-      cell(page, 2, 0) |> Expect.to_have_text!("Task 3")
-      cell(page, 3, 0) |> Expect.to_have_text!("Task 5")
+      status(page, "tasks") |> Expect.to_have_text!("Row deleted This row cannot be deleted.")
+      cell(page, "tasks", 2, 0) |> Expect.to_have_text!("Task 3")
+      cell(page, "tasks", 3, 0) |> Expect.to_have_text!("Task 5")
     end
 
     test "an enum edits with its values, a number with one decimal, and a value the server would refuse stays in the editor",
          %{page: page} do
       keyboard = Page.keyboard(page)
-      cell(page, 0, 2) |> Expect.to_have_text!("3.5")
-      cell(page, 3, 2) |> Expect.to_have_text!("1.0")
+      cell(page, "tasks", 0, 2) |> Expect.to_have_text!("3.5")
+      cell(page, "tasks", 3, 2) |> Expect.to_have_text!("1.0")
 
-      cell(page, 0, 1) |> Locator.click!()
+      cell(page, "tasks", 0, 1) |> Locator.click!()
       Keyboard.type!(keyboard, "re")
       Page.locator(page, "#tasks .masu-choice") |> Expect.to_have_text!(["review"])
       Keyboard.press!(keyboard, "Enter")
-      cell(page, 0, 1) |> Expect.to_have_text!("review")
+      cell(page, "tasks", 0, 1) |> Expect.to_have_text!("review")
 
       Keyboard.press!(keyboard, "ArrowUp")
       Keyboard.press!(keyboard, "F2")
@@ -1536,18 +1535,18 @@ defmodule MasuE2E.GridNewRowsTest do
 
       Keyboard.press!(keyboard, "ArrowDown")
       Keyboard.press!(keyboard, "Enter")
-      cell(page, 0, 1) |> Expect.to_have_text!("done")
+      cell(page, "tasks", 0, 1) |> Expect.to_have_text!("done")
 
-      cell(page, 0, 2) |> Locator.click!()
+      cell(page, "tasks", 0, 2) |> Locator.click!()
       Keyboard.type!(keyboard, "lots")
       Keyboard.press!(keyboard, "Enter")
-      status(page) |> Expect.to_have_text!("Estimate: Not a number")
+      status(page, "tasks") |> Expect.to_have_text!("Estimate: Not a number")
 
       Page.locator(page, "#tasks .masu-editor")
       |> Expect.to_have_attribute!("aria-invalid", "true")
 
       Keyboard.press!(keyboard, "Escape")
-      cell(page, 0, 2) |> Expect.to_have_text!("3.5")
+      cell(page, "tasks", 0, 2) |> Expect.to_have_text!("3.5")
     end
   end
 end
@@ -1556,9 +1555,6 @@ end
 # a module of the Chromium project alone, so the other engines don't run it.
 defmodule MasuE2E.GridNewRowsChromiumTest do
   use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.chromium_projects()
-
-  defp status(page), do: Page.locator(page, "#tasks > .masu-status")
-  defp cell(page, row, col), do: Page.locator(page, "#tasks-r#{row}-c#{col}")
 
   describe "new and deleted rows, and editors" do
     setup %{page: page} do
@@ -1570,7 +1566,7 @@ defmodule MasuE2E.GridNewRowsChromiumTest do
          %{page: page, context: context} do
       BrowserContext.grant_permissions!(context, ["clipboard-read", "clipboard-write"])
       grid(page, "tasks") |> Locator.evaluate!("(el) => (el.scrollTop = el.scrollHeight)")
-      cell(page, 29, 0) |> Locator.click!()
+      cell(page, "tasks", 29, 0) |> Locator.click!()
 
       Page.evaluate!(
         page,
@@ -1581,9 +1577,9 @@ defmodule MasuE2E.GridNewRowsChromiumTest do
       question = Page.get_by_role(page, :alertdialog)
       question |> Expect.to_contain_text!("Add 2 new rows for the rest of the paste?")
       question |> Locator.get_by_role(:button, name: "Add rows") |> Locator.click!()
-      status(page) |> Expect.to_have_text!("Title: can't be blank")
-      cell(page, 29, 0) |> Expect.to_have_text!("Alpha")
-      cell(page, 30, 0) |> Expect.to_have_text!("Beta")
+      status(page, "tasks") |> Expect.to_have_text!("Title: can't be blank")
+      cell(page, "tasks", 29, 0) |> Expect.to_have_text!("Alpha")
+      cell(page, "tasks", 30, 0) |> Expect.to_have_text!("Beta")
       Page.locator(page, "#tasks .masu-draft") |> Expect.to_have_count!(1)
       grid(page, "tasks") |> Expect.to_have_attribute!("aria-activedescendant", "tasks-r31-c0")
     end

@@ -5,10 +5,6 @@ defmodule MasuE2E.MenusTest do
   # cell, with the grid's items and the app's, and the app's items in a
   # header menu. Its columns: name, city, plan, revenue, active.
 
-  defp cell(page, row, col), do: Page.locator(page, "#menus-r#{row}-c#{col}")
-  defp menu(page), do: Page.locator(page, ~s(#menus [role="menu"]))
-  defp item(page, name), do: menu(page) |> Locator.get_by_role(:menuitem, name: name, exact: true)
-
   setup %{page: page} do
     open_page(page, "/menus")
     :ok
@@ -17,10 +13,10 @@ defmodule MasuE2E.MenusTest do
   test "a right click opens a cell's menu, whose items filter and sort by the cell", %{page: page} do
     [_, city, plan | _] = row_text(page, "menus", 0)
 
-    cell(page, 0, 2) |> Locator.click!(button: :right)
-    menu(page) |> Expect.to_have_attribute!("aria-label", "Plan: actions")
+    cell(page, "menus", 0, 2) |> Locator.click!(button: :right)
+    menu(page, "menus") |> Expect.to_have_attribute!("aria-label", "Plan: actions")
 
-    menu(page)
+    menu(page, "menus")
     |> Locator.get_by_role(:menuitem)
     |> Expect.to_have_text!([
       "Copy",
@@ -35,16 +31,16 @@ defmodule MasuE2E.MenusTest do
       "Mark"
     ])
 
-    menu(page) |> Locator.get_by_role(:separator) |> Expect.to_have_count!(3)
-    item(page, "Filter by #{plan}") |> Locator.click!()
+    menu(page, "menus") |> Locator.get_by_role(:separator) |> Expect.to_have_count!(3)
+    item(page, "menus", "Filter by #{plan}") |> Locator.click!()
     settled(page, "menus")
-    menu(page) |> Expect.to_have_count!(0)
+    menu(page, "menus") |> Expect.to_have_count!(0)
 
     Page.locator(page, "#menus .masu-chip-text")
     |> Expect.to_have_text!(["Plan is one of #{plan}"])
 
-    cell(page, 0, 1) |> Locator.click!(button: :right)
-    item(page, "Exclude #{city}") |> Locator.click!()
+    cell(page, "menus", 0, 1) |> Locator.click!(button: :right)
+    item(page, "menus", "Exclude #{city}") |> Locator.click!()
     settled(page, "menus")
 
     Page.locator(page, "#menus .masu-chip-text")
@@ -52,8 +48,8 @@ defmodule MasuE2E.MenusTest do
 
     assert Enum.at(row_text(page, "menus", 0), 1) != city
 
-    cell(page, 0, 3) |> Locator.click!(button: :right)
-    item(page, "Sort descending") |> Locator.click!()
+    cell(page, "menus", 0, 3) |> Locator.click!(button: :right)
+    item(page, "menus", "Sort descending") |> Locator.click!()
     settled(page, "menus")
     header(page, "menus", "revenue") |> Expect.to_have_attribute!("aria-sort", "descending")
     first = page |> row_text("menus", 0) |> Enum.at(3) |> String.replace(",", "") |> number()
@@ -64,22 +60,22 @@ defmodule MasuE2E.MenusTest do
   test "Shift+F10 opens the menu of the active cell: the arrows move, Escape gives the focus back",
        %{page: page} do
     keyboard = Page.keyboard(page)
-    cell(page, 2, 0) |> Locator.click!()
+    cell(page, "menus", 2, 0) |> Locator.click!()
     Keyboard.press!(keyboard, "Shift+F10")
-    menu(page) |> Expect.to_be_visible!()
-    item(page, "Copy") |> Expect.to_be_focused!()
+    menu(page, "menus") |> Expect.to_be_visible!()
+    item(page, "menus", "Copy") |> Expect.to_be_focused!()
 
     Keyboard.press!(keyboard, "ArrowDown")
-    item(page, "Copy with headers") |> Expect.to_be_focused!()
+    item(page, "menus", "Copy with headers") |> Expect.to_be_focused!()
     Keyboard.press!(keyboard, "End")
-    item(page, "Card") |> Expect.to_be_focused!()
+    item(page, "menus", "Card") |> Expect.to_be_focused!()
     Keyboard.press!(keyboard, "ArrowDown")
-    item(page, "Copy") |> Expect.to_be_focused!()
+    item(page, "menus", "Copy") |> Expect.to_be_focused!()
     Keyboard.press!(keyboard, "s")
-    item(page, "Sort ascending") |> Expect.to_be_focused!()
+    item(page, "menus", "Sort ascending") |> Expect.to_be_focused!()
 
     Keyboard.press!(keyboard, "Escape")
-    menu(page) |> Expect.to_have_count!(0)
+    menu(page, "menus") |> Expect.to_have_count!(0)
     grid(page, "menus") |> Expect.to_be_focused!()
     grid(page, "menus") |> Expect.to_have_attribute!("aria-activedescendant", "menus-r2-c0")
 
@@ -88,7 +84,7 @@ defmodule MasuE2E.MenusTest do
     Keyboard.press!(keyboard, "End")
     Keyboard.press!(keyboard, "ArrowUp")
     Keyboard.press!(keyboard, "ArrowUp")
-    item(page, "Open") |> Expect.to_be_focused!()
+    item(page, "menus", "Open") |> Expect.to_be_focused!()
     Keyboard.press!(keyboard, "Enter")
     [name | _] = row_text(page, "menus", 2)
     Page.locator(page, "#said") |> Expect.to_have_text!("Opened #{name}")
@@ -109,8 +105,8 @@ defmodule MasuE2E.MenusTest do
         """)
       end)
 
-    cell(page, 1, 0) |> Locator.click!(button: :right)
-    item(page, "Mark") |> Locator.click!()
+    cell(page, "menus", 1, 0) |> Locator.click!(button: :right)
+    item(page, "menus", "Mark") |> Locator.click!()
     Page.locator(page, "#js-mark") |> Expect.to_have_attribute!("data-marked", "yes")
 
     assert Playwright.Promise.await!(heard) == %{
@@ -122,15 +118,15 @@ defmodule MasuE2E.MenusTest do
              "value" => name
            }
 
-    cell(page, 1, 0) |> Locator.click!(button: :right)
-    item(page, "Card") |> Locator.click!()
+    cell(page, "menus", 1, 0) |> Locator.click!(button: :right)
+    item(page, "menus", "Card") |> Locator.click!()
     panel = Page.locator(page, "#menus-action-panel")
     panel |> Expect.to_be_visible!()
     panel |> Expect.to_have_attribute!("role", "dialog")
     panel |> Locator.locator("#card strong") |> Expect.to_have_text!(name)
     panel |> Expect.to_be_focused!()
     # Under the cell.
-    cell_box = cell(page, 1, 0) |> Locator.bounding_box!()
+    cell_box = cell(page, "menus", 1, 0) |> Locator.bounding_box!()
     panel_box = Locator.bounding_box!(panel)
     assert abs(panel_box.y - (cell_box.y + cell_box.height + 4)) < 2
 
@@ -253,9 +249,9 @@ defmodule MasuE2E.MenusTest do
   } do
     [name, _, _, revenue | _] = row_text(page, "menus", 0)
 
-    cell(page, 0, 3) |> Locator.click!(button: :right)
+    cell(page, "menus", 0, 3) |> Locator.click!(button: :right)
 
-    menu(page)
+    menu(page, "menus")
     |> Locator.get_by_role(:menuitem)
     |> Expect.to_contain_text!([
       "Filter by #{revenue}",
@@ -267,7 +263,7 @@ defmodule MasuE2E.MenusTest do
       "Filter by empty"
     ])
 
-    item(page, "At least #{revenue}") |> Locator.click!()
+    item(page, "menus", "At least #{revenue}") |> Locator.click!()
     settled(page, "menus")
 
     Page.locator(page, "#menus .masu-chip-text")
@@ -280,10 +276,10 @@ defmodule MasuE2E.MenusTest do
       if text != nil, do: assert(text |> String.replace(",", "") |> number() >= bound)
     end
 
-    cell(page, 0, 0) |> Locator.click!(button: :right)
-    item(page, "Greater than #{name}") |> Expect.to_have_count!(0)
+    cell(page, "menus", 0, 0) |> Locator.click!(button: :right)
+    item(page, "menus", "Greater than #{name}") |> Expect.to_have_count!(0)
     [first | _] = row_text(page, "menus", 0)
-    item(page, "Contains #{first}") |> Locator.click!()
+    item(page, "menus", "Contains #{first}") |> Locator.click!()
     settled(page, "menus")
 
     Page.locator(page, "#menus .masu-chip-text")
@@ -294,11 +290,11 @@ defmodule MasuE2E.MenusTest do
     page: page
   } do
     height = fn ->
-      cell(page, 0, 2) |> Locator.click!(button: :right)
-      menu(page) |> Expect.to_be_visible!()
-      box = menu(page) |> Locator.bounding_box!()
+      cell(page, "menus", 0, 2) |> Locator.click!(button: :right)
+      menu(page, "menus") |> Expect.to_be_visible!()
+      box = menu(page, "menus") |> Locator.bounding_box!()
       page |> Page.keyboard() |> Keyboard.press!("Escape")
-      menu(page) |> Expect.to_have_count!(0)
+      menu(page, "menus") |> Expect.to_have_count!(0)
       box.height
     end
 
@@ -313,10 +309,6 @@ end
 defmodule MasuE2E.MenusChromiumTest do
   use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.chromium_projects()
 
-  defp cell(page, row, col), do: Page.locator(page, "#menus-r#{row}-c#{col}")
-  defp menu(page), do: Page.locator(page, ~s(#menus [role="menu"]))
-  defp item(page, name), do: menu(page) |> Locator.get_by_role(:menuitem, name: name, exact: true)
-
   setup %{page: page} do
     open_page(page, "/menus")
     :ok
@@ -328,10 +320,10 @@ defmodule MasuE2E.MenusChromiumTest do
     rows = [row_text(page, "menus", 0), row_text(page, "menus", 1)]
     [[a0, a1 | _], [b0, b1 | _]] = rows
 
-    cell(page, 0, 0) |> Locator.click!()
-    cell(page, 1, 1) |> Locator.click!(modifiers: [:shift])
-    cell(page, 1, 0) |> Locator.click!(button: :right)
-    item(page, "Copy with headers") |> Locator.click!()
+    cell(page, "menus", 0, 0) |> Locator.click!()
+    cell(page, "menus", 1, 1) |> Locator.click!(modifiers: [:shift])
+    cell(page, "menus", 1, 0) |> Locator.click!(button: :right)
+    item(page, "menus", "Copy with headers") |> Locator.click!()
 
     Expect.poll!(
       fn -> Page.evaluate!(page, "() => navigator.clipboard.readText()") end,
@@ -339,8 +331,8 @@ defmodule MasuE2E.MenusChromiumTest do
     )
 
     # A right click out of the range: the cell alone.
-    cell(page, 3, 2) |> Locator.click!(button: :right)
-    item(page, "Copy") |> Locator.click!()
+    cell(page, "menus", 3, 2) |> Locator.click!(button: :right)
+    item(page, "menus", "Copy") |> Locator.click!()
     expected = page |> row_text("menus", 3) |> Enum.at(2)
 
     Expect.poll!(

@@ -16,6 +16,19 @@ defmodule MasuE2E.Support do
   @doc "The header cell of a column."
   def header(page, id, key), do: Page.locator(page, ~s(##{id} .masu-hcell[data-key="#{key}"]))
 
+  @doc "The cell of a grid at `row` and `col` (from 0)."
+  def cell(page, id, row, col), do: Page.locator(page, "##{id}-r#{row}-c#{col}")
+
+  @doc "The status line of a grid."
+  def status(page, id), do: Page.locator(page, "##{id} > .masu-status")
+
+  @doc "The open menu of a grid."
+  def menu(page, id), do: Page.locator(page, ~s(##{id} [role="menu"]))
+
+  @doc "An item of the open menu of a grid."
+  def item(page, id, name),
+    do: page |> menu(id) |> Locator.get_by_role(:menuitem, name: name, exact: true)
+
   @doc "The cells of the row at `index` (from 0), as the grid shows them."
   def row_text(page, id, index) do
     row = Page.locator(page, ~s(##{id} .masu-body .masu-row[aria-rowindex="#{index + 2}"]))
