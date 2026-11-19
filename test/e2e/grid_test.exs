@@ -96,34 +96,6 @@ defmodule MasuE2E.GridTest do
       header(page, "customers", "id") |> Expect.to_have_attribute!("aria-sort", "ascending")
     end
 
-    # test.skip(browserName !== "chromium", ...) at run time: ExUnit cannot
-    # skip a running test, so the other engines run an empty body.
-    test "Shift with the arrows selects a range, and copy gives tab-separated values",
-         %{page: page, context: context, browser_name: browser_name} do
-      if browser_name == :chromium do
-        # only Chromium lets a test read the clipboard
-        BrowserContext.grant_permissions!(context, ["clipboard-read", "clipboard-write"])
-        keyboard = Page.keyboard(page)
-        grid(page, "customers") |> Locator.focus!()
-        Keyboard.press!(keyboard, "ArrowRight")
-        Keyboard.press!(keyboard, "Shift+ArrowRight")
-        Keyboard.press!(keyboard, "Shift+ArrowDown")
-        Page.locator(page, "#customers .masu-selected") |> Expect.to_have_count!(4)
-
-        Keyboard.press!(keyboard, "ControlOrMeta+c")
-
-        Expect.poll!(
-          fn -> Page.evaluate!(page, "() => navigator.clipboard.readText()") end,
-          &assert(
-            &1 ==
-              "Ken Torvalds\tken.torvalds1@example.com\nKatherine Hamilton\tkatherine.hamilton2@example.com"
-          )
-        )
-
-        Page.locator(page, "#customers .masu-status") |> Expect.to_have_text!("2 rows copied")
-      end
-    end
-
     test "dragging the edge of a header resizes its column, a double click fits it", %{page: page} do
       mouse = Page.mouse(page)
       resizer = header(page, "customers", "name") |> Locator.locator(".masu-resizer")
@@ -244,6 +216,42 @@ defmodule MasuE2E.GridTest do
   # Jest's toBeCloseTo(expected, digits).
   defp assert_close(actual, expected, digits) do
     assert abs(actual - expected) < :math.pow(10, -digits) / 2
+  end
+end
+
+# Chromium only, as only Chromium lets a test read or write the clipboard:
+# a module of the Chromium project alone, so the other engines don't run it.
+defmodule MasuE2E.GridChromiumTest do
+  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.chromium_projects()
+
+  describe "a grid of a hundred thousand rows" do
+    setup %{page: page} do
+      open_page(page, "/")
+      :ok
+    end
+
+    test "Shift with the arrows selects a range, and copy gives tab-separated values",
+         %{page: page, context: context} do
+      BrowserContext.grant_permissions!(context, ["clipboard-read", "clipboard-write"])
+      keyboard = Page.keyboard(page)
+      grid(page, "customers") |> Locator.focus!()
+      Keyboard.press!(keyboard, "ArrowRight")
+      Keyboard.press!(keyboard, "Shift+ArrowRight")
+      Keyboard.press!(keyboard, "Shift+ArrowDown")
+      Page.locator(page, "#customers .masu-selected") |> Expect.to_have_count!(4)
+
+      Keyboard.press!(keyboard, "ControlOrMeta+c")
+
+      Expect.poll!(
+        fn -> Page.evaluate!(page, "() => navigator.clipboard.readText()") end,
+        &assert(
+          &1 ==
+            "Ken Torvalds\tken.torvalds1@example.com\nKatherine Hamilton\tkatherine.hamilton2@example.com"
+        )
+      )
+
+      Page.locator(page, "#customers .masu-status") |> Expect.to_have_text!("2 rows copied")
+    end
   end
 end
 
@@ -469,29 +477,6 @@ defmodule MasuE2E.GridEditingTest do
       cell(page, 1, 3) |> Expect.to_have_text!("")
     end
 
-    # test.skip(browserName !== "chromium", ...): see the grid's copy test.
-    test "a paste from a spreadsheet fills the cells from the active one",
-         %{page: page, context: context, browser_name: browser_name} do
-      if browser_name == :chromium do
-        # only Chromium lets a test write the clipboard
-        BrowserContext.grant_permissions!(context, ["clipboard-read", "clipboard-write"])
-        cell(page, 5, 3) |> Locator.click!()
-
-        Page.evaluate!(
-          page,
-          ~s|() => navigator.clipboard.writeText("Porto\\tteam\\nFaro\\tnot a plan")|
-        )
-
-        page |> Page.keyboard() |> Keyboard.press!("ControlOrMeta+v")
-
-        cell(page, 5, 3) |> Expect.to_have_text!("Porto")
-        cell(page, 5, 4) |> Expect.to_have_text!("team")
-        cell(page, 6, 4) |> Expect.to_have_attribute!("aria-invalid", "true")
-        cell(page, 6, 3) |> Expect.to_have_attribute!("title", "Not saved: the row has an error.")
-        cell(page, 6, 3) |> Expect.to_have_text!("Porto")
-      end
-    end
-
     test "Ctrl+D fills a range down with its first row", %{page: page} do
       cell(page, 5, 5) |> Locator.click!()
       page |> Page.keyboard() |> Keyboard.press!("Shift+ArrowDown")
@@ -521,6 +506,40 @@ defmodule MasuE2E.GridEditingTest do
       page |> Page.keyboard() |> Keyboard.type!("9")
       Page.locator(page, "#customers .masu-editor") |> Expect.to_have_count!(0)
       cell(page, 0, 0) |> Expect.to_have_text!("1")
+    end
+  end
+end
+
+# Chromium only, as only Chromium lets a test read or write the clipboard:
+# a module of the Chromium project alone, so the other engines don't run it.
+defmodule MasuE2E.GridEditingChromiumTest do
+  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.chromium_projects()
+
+  defp cell(page, row, col), do: Page.locator(page, "#customers-r#{row}-c#{col}")
+
+  describe "editing" do
+    setup %{page: page} do
+      open_page(page, "/")
+      :ok
+    end
+
+    test "a paste from a spreadsheet fills the cells from the active one",
+         %{page: page, context: context} do
+      BrowserContext.grant_permissions!(context, ["clipboard-read", "clipboard-write"])
+      cell(page, 5, 3) |> Locator.click!()
+
+      Page.evaluate!(
+        page,
+        ~s|() => navigator.clipboard.writeText("Porto\\tteam\\nFaro\\tnot a plan")|
+      )
+
+      page |> Page.keyboard() |> Keyboard.press!("ControlOrMeta+v")
+
+      cell(page, 5, 3) |> Expect.to_have_text!("Porto")
+      cell(page, 5, 4) |> Expect.to_have_text!("team")
+      cell(page, 6, 4) |> Expect.to_have_attribute!("aria-invalid", "true")
+      cell(page, 6, 3) |> Expect.to_have_attribute!("title", "Not saved: the row has an error.")
+      cell(page, 6, 3) |> Expect.to_have_text!("Porto")
     end
   end
 end
@@ -1313,6 +1332,8 @@ end
 defmodule MasuE2E.GridSelectionTest do
   use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
 
+  alias Playwright.Download
+
   defp person, do: room_name("sel")
   defp box(page, row), do: Page.locator(page, "#views-r#{row}-c0 .masu-select")
 
@@ -1528,37 +1549,51 @@ defmodule MasuE2E.GridNewRowsTest do
       Keyboard.press!(keyboard, "Escape")
       cell(page, 0, 2) |> Expect.to_have_text!("3.5")
     end
+  end
+end
 
-    # test.skip(browserName !== "chromium", ...): see the grid's copy test.
+# Chromium only, as only Chromium lets a test read or write the clipboard:
+# a module of the Chromium project alone, so the other engines don't run it.
+defmodule MasuE2E.GridNewRowsChromiumTest do
+  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.chromium_projects()
+
+  defp status(page), do: Page.locator(page, "#tasks > .masu-status")
+  defp cell(page, row, col), do: Page.locator(page, "#tasks-r#{row}-c#{col}")
+
+  describe "new and deleted rows, and editors" do
+    setup %{page: page} do
+      open_page(page, "/tasks")
+      :ok
+    end
+
     test "a paste past the last row adds the rest as new rows, and shows the one refused",
-         %{page: page, context: context, browser_name: browser_name} do
-      if browser_name == :chromium do
-        # only Chromium lets a test write the clipboard
-        BrowserContext.grant_permissions!(context, ["clipboard-read", "clipboard-write"])
-        grid(page, "tasks") |> Locator.evaluate!("(el) => (el.scrollTop = el.scrollHeight)")
-        cell(page, 29, 0) |> Locator.click!()
+         %{page: page, context: context} do
+      BrowserContext.grant_permissions!(context, ["clipboard-read", "clipboard-write"])
+      grid(page, "tasks") |> Locator.evaluate!("(el) => (el.scrollTop = el.scrollHeight)")
+      cell(page, 29, 0) |> Locator.click!()
 
-        Page.evaluate!(
-          page,
-          ~s|() => navigator.clipboard.writeText("Alpha\\ttodo\\nBeta\\tdoing\\n\\tdone")|
-        )
+      Page.evaluate!(
+        page,
+        ~s|() => navigator.clipboard.writeText("Alpha\\ttodo\\nBeta\\tdoing\\n\\tdone")|
+      )
 
-        page |> Page.keyboard() |> Keyboard.press!("ControlOrMeta+v")
-        question = Page.get_by_role(page, :alertdialog)
-        question |> Expect.to_contain_text!("Add 2 new rows for the rest of the paste?")
-        question |> Locator.get_by_role(:button, name: "Add rows") |> Locator.click!()
-        status(page) |> Expect.to_have_text!("Title: can't be blank")
-        cell(page, 29, 0) |> Expect.to_have_text!("Alpha")
-        cell(page, 30, 0) |> Expect.to_have_text!("Beta")
-        Page.locator(page, "#tasks .masu-draft") |> Expect.to_have_count!(1)
-        grid(page, "tasks") |> Expect.to_have_attribute!("aria-activedescendant", "tasks-r31-c0")
-      end
+      page |> Page.keyboard() |> Keyboard.press!("ControlOrMeta+v")
+      question = Page.get_by_role(page, :alertdialog)
+      question |> Expect.to_contain_text!("Add 2 new rows for the rest of the paste?")
+      question |> Locator.get_by_role(:button, name: "Add rows") |> Locator.click!()
+      status(page) |> Expect.to_have_text!("Title: can't be blank")
+      cell(page, 29, 0) |> Expect.to_have_text!("Alpha")
+      cell(page, 30, 0) |> Expect.to_have_text!("Beta")
+      Page.locator(page, "#tasks .masu-draft") |> Expect.to_have_count!(1)
+      grid(page, "tasks") |> Expect.to_have_attribute!("aria-activedescendant", "tasks-r31-c0")
     end
   end
 end
 
 defmodule MasuE2E.GridPagesTest do
   use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+
+  alias Playwright.WebSocket
 
   describe "rows without a count, and pages" do
     setup %{page: page} do

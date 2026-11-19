@@ -5,8 +5,10 @@ defmodule MasuE2E.Case do
   Each module is `parameterize:`d over `projects/0`, one project for each
   engine with its desktop device, which picks the browser. E2E_BROWSERS
   picks some of them (comma-separated, for example "firefox" or
-  "chromium,webkit"); the default is all three. `Playwright.Case` gives
-  each test a `context` and `page`, and the `browser_name`.
+  "chromium,webkit"); the default is all three. A module of tests only
+  Chromium can run is `parameterize:`d over `chromium_projects/0`.
+  `Playwright.Case` gives each test a `context` and `page`, and the
+  `browser_name`.
   """
 
   use ExUnit.CaseTemplate
@@ -14,7 +16,12 @@ defmodule MasuE2E.Case do
   @devices %{chromium: "Desktop Chrome", firefox: "Desktop Firefox", webkit: "Desktop Safari"}
 
   @doc "The projects of the run, as `parameterize:` takes them."
-  def projects do
+  def projects, do: for({_name, project} <- picked(), do: project)
+
+  @doc "The Chromium project of the run, if E2E_BROWSERS picks it, for the Chromium-only tests."
+  def chromium_projects, do: for({:chromium, project} <- picked(), do: project)
+
+  defp picked do
     "E2E_BROWSERS"
     |> System.get_env("chromium,firefox,webkit")
     |> String.split(",")
@@ -25,7 +32,8 @@ defmodule MasuE2E.Case do
         raise ~s(E2E_BROWSERS: unknown browser "#{name}", use chromium, firefox or webkit)
       end
 
-      Playwright.Test.parameters(Playwright.device(@devices[String.to_atom(name)]))
+      name = String.to_atom(name)
+      {name, Playwright.Test.parameters(Playwright.device(@devices[name]))}
     end)
   end
 
@@ -34,8 +42,6 @@ defmodule MasuE2E.Case do
       use Playwright.Case, unquote(opts)
 
       import MasuE2E.Support
-
-      alias Playwright.{Download, WebSocket, WebSocketRoute}
 
       @moduletag :e2e
     end

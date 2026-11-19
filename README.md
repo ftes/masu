@@ -287,7 +287,7 @@ rebuilds the bundle, and the page reloads.
 mix test                   # the ExUnit suite
 mix test --include build   # also mix masu.build and mix hex.build
 mix test.js                # the unit tests of the TypeScript modules
-mix test.e2e               # the browser tests (Playwright)
+mix test.e2e               # the Playwright browser tests
 mix precommit              # compile, format, credo --strict and test
 mix dialyzer
 mix bench                  # the benchmarks (bench/README.md), with PostgreSQL

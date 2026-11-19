@@ -177,38 +177,6 @@ defmodule MasuE2E.MenusTest do
     panel |> Expect.to_have_count!(0)
   end
 
-  # test.skip(browserName !== "chromium", ...) at run time: ExUnit cannot
-  # skip a running test, so the other engines run an empty body.
-  test "Copy with headers copies the cell, or the range it is in, with the columns' labels",
-       %{page: page, context: context, browser_name: browser_name} do
-    if browser_name == :chromium do
-      # only Chromium lets a test read the clipboard
-      BrowserContext.grant_permissions!(context, ["clipboard-read", "clipboard-write"])
-      rows = [row_text(page, "menus", 0), row_text(page, "menus", 1)]
-      [[a0, a1 | _], [b0, b1 | _]] = rows
-
-      cell(page, 0, 0) |> Locator.click!()
-      cell(page, 1, 1) |> Locator.click!(modifiers: [:shift])
-      cell(page, 1, 0) |> Locator.click!(button: :right)
-      item(page, "Copy with headers") |> Locator.click!()
-
-      Expect.poll!(
-        fn -> Page.evaluate!(page, "() => navigator.clipboard.readText()") end,
-        &assert(&1 == "Name\tCity\n#{a0}\t#{a1}\n#{b0}\t#{b1}")
-      )
-
-      # A right click out of the range: the cell alone.
-      cell(page, 3, 2) |> Locator.click!(button: :right)
-      item(page, "Copy") |> Locator.click!()
-      expected = page |> row_text("menus", 3) |> Enum.at(2)
-
-      Expect.poll!(
-        fn -> Page.evaluate!(page, "() => navigator.clipboard.readText()") end,
-        &assert(&1 == expected)
-      )
-    end
-  end
-
   test "a grid with no menu of its cells leaves the browser's own", %{page: page} do
     open_page(page, "/small")
 
@@ -337,5 +305,47 @@ defmodule MasuE2E.MenusTest do
     own = height.()
     Page.add_style_tag!(page, content: "[popover] { height: 100%; }")
     assert height.() == own
+  end
+end
+
+# Chromium only, as only Chromium lets a test read or write the clipboard:
+# a module of the Chromium project alone, so the other engines don't run it.
+defmodule MasuE2E.MenusChromiumTest do
+  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.chromium_projects()
+
+  defp cell(page, row, col), do: Page.locator(page, "#menus-r#{row}-c#{col}")
+  defp menu(page), do: Page.locator(page, ~s(#menus [role="menu"]))
+  defp item(page, name), do: menu(page) |> Locator.get_by_role(:menuitem, name: name, exact: true)
+
+  setup %{page: page} do
+    open_page(page, "/menus")
+    :ok
+  end
+
+  test "Copy with headers copies the cell, or the range it is in, with the columns' labels",
+       %{page: page, context: context} do
+    BrowserContext.grant_permissions!(context, ["clipboard-read", "clipboard-write"])
+    rows = [row_text(page, "menus", 0), row_text(page, "menus", 1)]
+    [[a0, a1 | _], [b0, b1 | _]] = rows
+
+    cell(page, 0, 0) |> Locator.click!()
+    cell(page, 1, 1) |> Locator.click!(modifiers: [:shift])
+    cell(page, 1, 0) |> Locator.click!(button: :right)
+    item(page, "Copy with headers") |> Locator.click!()
+
+    Expect.poll!(
+      fn -> Page.evaluate!(page, "() => navigator.clipboard.readText()") end,
+      &assert(&1 == "Name\tCity\n#{a0}\t#{a1}\n#{b0}\t#{b1}")
+    )
+
+    # A right click out of the range: the cell alone.
+    cell(page, 3, 2) |> Locator.click!(button: :right)
+    item(page, "Copy") |> Locator.click!()
+    expected = page |> row_text("menus", 3) |> Enum.at(2)
+
+    Expect.poll!(
+      fn -> Page.evaluate!(page, "() => navigator.clipboard.readText()") end,
+      &assert(&1 == expected)
+    )
   end
 end
