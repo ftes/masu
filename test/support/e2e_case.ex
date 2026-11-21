@@ -3,7 +3,7 @@ defmodule MasuE2E.Case do
   The browser tests (test/e2e), with playwright_ex: `mix test --only e2e`.
 
   Each module is `parameterize:`d over `projects/0`, one project for each
-  engine with its desktop device, which picks the browser. E2E_BROWSERS
+  engine, named after it, with its desktop device, which picks the browser. E2E_BROWSERS
   picks some of them (comma-separated, for example "firefox" or
   "chromium,webkit"); the default is all three. A module of tests only
   Chromium can run is `parameterize:`d over `chromium_projects/0`.
@@ -32,8 +32,8 @@ defmodule MasuE2E.Case do
         raise ~s(E2E_BROWSERS: unknown browser "#{name}", use chromium, firefox or webkit)
       end
 
-      name = String.to_atom(name)
-      {name, Playwright.Test.parameters(Playwright.device(@devices[name]))}
+      browser = String.to_atom(name)
+      {browser, Playwright.Test.parameters([name: name] ++ Playwright.device(@devices[browser]))}
     end)
   end
 

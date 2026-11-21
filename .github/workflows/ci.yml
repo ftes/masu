@@ -251,16 +251,19 @@ jobs:
 
       # test_helper.exs runs `mix masu.build` (the real bundle) and starts
       # the development server (dev.exs) without watchers. A failed run is
-      # retried twice.
+      # retried twice, each run with GitHub annotations (a test passing on a
+      # retry counts as flaky).
       - name: mix test.e2e
         run: |
-          mix test.e2e || { [ $? -eq 2 ] && { mix test.e2e --failed || { [ $? -eq 2 ] && mix test.e2e --failed; }; }; }
+          f="--formatter ExUnit.CLIFormatter --formatter Playwright.Test.GitHubFormatter"
+          mix test.e2e $f || { [ $? -eq 2 ] && { mix test.e2e --failed $f || { [ $? -eq 2 ] && mix test.e2e --failed $f; }; }; }
         env:
           MIX_ENV: test
           E2E_BROWSERS: ${{ matrix.browser }}
 
+      # Also when a retry passed, to keep the failed run's files.
       - uses: actions/upload-artifact@v7
-        if: failure()
+        if: ${{ !cancelled() }}
         with:
           name: test-results-${{ matrix.browser }}
           path: test-results

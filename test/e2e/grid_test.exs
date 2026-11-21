@@ -295,9 +295,14 @@ defmodule MasuE2E.GridLiveRowsTest do
       |> Expect.to_be_attached!(timeout: 10_000)
 
       top =
-        Enum.map([0, 1, 2, 3, 4], fn i ->
-          page |> row_text("quotes", i) |> Enum.at(1) |> String.replace(",", "") |> number()
+        [0, 1, 2, 3, 4]
+        |> Enum.map(fn i ->
+          Playwright.Promise.async(fn ->
+            page |> row_text("quotes", i) |> Enum.at(1) |> String.replace(",", "") |> number()
+          end)
         end)
+        |> Playwright.Promise.all()
+        |> Playwright.Promise.await!()
 
       assert Enum.sort(top, :desc) == top
     end

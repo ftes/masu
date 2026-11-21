@@ -20,7 +20,12 @@ defmodule MasuE2E.ActionsTest do
   test "the button at a row's end opens its actions: a link, an action, one that is not available",
        %{page: page} do
     # The first customer that is active, and the first that is not.
-    rows = Enum.map([0, 1, 2, 3, 4], &row_text(page, "actions", &1))
+    rows =
+      [0, 1, 2, 3, 4]
+      |> Enum.map(fn i -> Playwright.Promise.async(fn -> row_text(page, "actions", i) end) end)
+      |> Playwright.Promise.all()
+      |> Playwright.Promise.await!()
+
     active = Enum.find_index(rows, &(Enum.at(&1, 3) == "✓"))
     inactive = Enum.find_index(rows, &(Enum.at(&1, 3) == ""))
 
