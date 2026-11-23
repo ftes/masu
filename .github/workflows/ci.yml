@@ -243,9 +243,8 @@ jobs:
       - run: npm ci
         working-directory: assets
 
-      # The driver; the image has the browser and its system packages
-      # (PLAYWRIGHT_BROWSERS_PATH), so the install finds it there.
-      - run: mix playwright.install ${{ matrix.browser }}
+      # The driver only; the image has the browsers and their system packages.
+      - run: mix playwright.install --no-browsers
         env:
           MIX_ENV: test
 

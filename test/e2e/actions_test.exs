@@ -1,5 +1,5 @@
 defmodule MasuE2E.ActionsTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   # Actions of the app's own (Masu.Action), on the Actions page: on the
   # rows selected (the bar above the grid), and on each row (the menu at
@@ -20,11 +20,7 @@ defmodule MasuE2E.ActionsTest do
   test "the button at a row's end opens its actions: a link, an action, one that is not available",
        %{page: page} do
     # The first customer that is active, and the first that is not.
-    rows =
-      [0, 1, 2, 3, 4]
-      |> Enum.map(fn i -> Playwright.Promise.async(fn -> row_text(page, "actions", i) end) end)
-      |> Playwright.Promise.all()
-      |> Playwright.Promise.await!()
+    rows = Enum.map(0..4, &row_text(page, "actions", &1))
 
     active = Enum.find_index(rows, &(Enum.at(&1, 3) == "✓"))
     inactive = Enum.find_index(rows, &(Enum.at(&1, 3) == ""))

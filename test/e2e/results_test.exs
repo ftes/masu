@@ -1,5 +1,5 @@
 defmodule MasuE2E.ResultsTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   # A query tool's results (the Results page): column names and rows as
   # lists of values, of no types. The grid learns each column's type.

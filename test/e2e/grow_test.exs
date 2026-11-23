@@ -1,5 +1,5 @@
 defmodule MasuE2E.GrowTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   # A column that grows (`grow`), on the Grow page: the name (200px and
   # grow) takes the room that city (130), plan (120), seats (100) and active

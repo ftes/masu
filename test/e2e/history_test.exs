@@ -1,5 +1,5 @@
 defmodule MasuE2E.HistoryTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   # The history of cells (Masu.History), on the History page: a budget of
   # item, owner, amount, kept in memory by the server for the whole run;

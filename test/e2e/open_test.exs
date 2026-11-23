@@ -1,5 +1,5 @@
 defmodule MasuE2E.OpenTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   # Rows that open (`on_row_activate`), on the Open a row page: a click on a
   # row, or Enter on it, patches the URL to the row, and the page shows it

@@ -1,5 +1,5 @@
 defmodule MasuE2E.TallTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   # A grid taller than a browser draws an element: 100,000 rows of 360
   # pixels are 36,000,000 pixels, more than Firefox (17,895,697) and

@@ -1,5 +1,5 @@
 defmodule MasuE2E.FilterOpsTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   # A source that runs some filters only (the Some filters page: Lotus
   # Web's = ≠ > < ≥ ≤ LIKE, null and not null): the menus offer those.

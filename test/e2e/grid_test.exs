@@ -2,7 +2,7 @@
 # module of its own, so that they run at once.
 
 defmodule MasuE2E.GridTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   describe "a grid of a hundred thousand rows" do
     setup %{page: page} do
@@ -256,7 +256,7 @@ defmodule MasuE2E.GridChromiumTest do
 end
 
 defmodule MasuE2E.GridLiveRowsTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   describe "live rows" do
     test "a row that changes on the topic flashes, and the person keeps their place", %{
@@ -295,14 +295,9 @@ defmodule MasuE2E.GridLiveRowsTest do
       |> Expect.to_be_attached!(timeout: 10_000)
 
       top =
-        [0, 1, 2, 3, 4]
-        |> Enum.map(fn i ->
-          Playwright.Promise.async(fn ->
-            page |> row_text("quotes", i) |> Enum.at(1) |> String.replace(",", "") |> number()
-          end)
+        Enum.map(0..4, fn i ->
+          page |> row_text("quotes", i) |> Enum.at(1) |> String.replace(",", "") |> number()
         end)
-        |> Playwright.Promise.all()
-        |> Playwright.Promise.await!()
 
       assert Enum.sort(top, :desc) == top
     end
@@ -310,7 +305,7 @@ defmodule MasuE2E.GridLiveRowsTest do
 end
 
 defmodule MasuE2E.GridFilterMenuTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   describe "the filter menu" do
     setup %{page: page} do
@@ -407,7 +402,7 @@ defmodule MasuE2E.GridFilterMenuTest do
 end
 
 defmodule MasuE2E.GridEditingTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   describe "editing" do
     setup %{page: page} do
@@ -552,7 +547,7 @@ defmodule MasuE2E.GridEditingChromiumTest do
 end
 
 defmodule MasuE2E.GridTwoPeopleTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   describe "two people" do
     # A shared grid lets its room go when it goes: on a navigation away its
@@ -608,7 +603,7 @@ defmodule MasuE2E.GridTwoPeopleTest do
 end
 
 defmodule MasuE2E.GridPresenceTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   defp two_people(ctx, prefix, alan_params \\ "") do
     room = room_name(prefix)
@@ -815,7 +810,7 @@ defmodule MasuE2E.GridPresenceTest do
 end
 
 defmodule MasuE2E.GridLayoutTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   defp person(name), do: room_name(name)
 
@@ -1086,7 +1081,7 @@ defmodule MasuE2E.GridLayoutTest do
 end
 
 defmodule MasuE2E.GridTreesTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   defp row(page, index),
     do: Page.locator(page, ~s(#files .masu-body .masu-row[aria-rowindex="#{index + 2}"]))
@@ -1155,7 +1150,7 @@ defmodule MasuE2E.GridTreesTest do
 end
 
 defmodule MasuE2E.GridDetailsTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   describe "details" do
     test "Alt+→ opens a row's detail under it, Alt+↓ goes into it, Escape comes back", %{
@@ -1224,7 +1219,7 @@ defmodule MasuE2E.GridDetailsTest do
 end
 
 defmodule MasuE2E.GridGroupsTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   defp row(page, index),
     do: Page.locator(page, ~s(#groups .masu-body .masu-row[aria-rowindex="#{index + 2}"]))
@@ -1337,7 +1332,7 @@ defmodule MasuE2E.GridGroupsTest do
 end
 
 defmodule MasuE2E.GridSelectionTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   alias Playwright.Download
 
@@ -1427,7 +1422,7 @@ defmodule MasuE2E.GridSelectionTest do
 end
 
 defmodule MasuE2E.GridNewRowsTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   describe "new and deleted rows, and editors" do
     setup %{page: page} do
@@ -1592,7 +1587,7 @@ defmodule MasuE2E.GridNewRowsChromiumTest do
 end
 
 defmodule MasuE2E.GridPagesTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   alias Playwright.WebSocket
 

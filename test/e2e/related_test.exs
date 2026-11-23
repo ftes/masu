@@ -1,5 +1,5 @@
 defmodule MasuE2E.RelatedTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   # Fields of related rows (the Related page): the customer's name and
   # their company's country, one value each, and the tags, many values.

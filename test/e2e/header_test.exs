@@ -1,5 +1,5 @@
 defmodule MasuE2E.HeaderTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   # The headers (dev.exs, /header): the filter bar, the default; the
   # filters in the bar alone (header_filters={false}); and the leaner

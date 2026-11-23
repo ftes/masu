@@ -1,5 +1,5 @@
 defmodule MasuE2E.AsyncTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   # A slow source read in a task (the Slow page, `load={:async}`), and a
   # controlled grid (the Controlled page, `on_query`): the LiveView runs

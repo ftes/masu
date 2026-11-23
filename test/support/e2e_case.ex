@@ -2,7 +2,7 @@ defmodule MasuE2E.Case do
   @moduledoc """
   The browser tests (test/e2e), with playwright_ex: `mix test --only e2e`.
 
-  Each module is `parameterize:`d over `projects/0`, one project for each
+  Each module is `parameterize:`d over `projects/0` by default, one project for each
   engine, named after it, with its desktop device, which picks the browser. E2E_BROWSERS
   picks some of them (comma-separated, for example "firefox" or
   "chromium,webkit"); the default is all three. A module of tests only
@@ -38,6 +38,8 @@ defmodule MasuE2E.Case do
   end
 
   using opts do
+    opts = Keyword.put_new(opts, :parameterize, quote(do: MasuE2E.Case.projects()))
+
     quote do
       use Playwright.Case, unquote(opts)
 

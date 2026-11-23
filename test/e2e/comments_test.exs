@@ -1,5 +1,5 @@
 defmodule MasuE2E.CommentsTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   # Issho's comments on a shared grid (dev.exs, /comments): a thread on a
   # cell, said in words, and its mark on that cell on each person's screen,

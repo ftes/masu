@@ -1,5 +1,5 @@
 defmodule MasuE2E.EditorsTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   # Editors of the app's own, on the Editors page: editors of the browser's
   # given to configure({editors}) (a slider with options, a color), and

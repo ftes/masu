@@ -1,5 +1,5 @@
 defmodule MasuE2E.LookTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   # Masu in another app's look: its grid, themed with tokens only, against
   # Lotus Web's results table (e2e/fixtures/lotus), pixel for pixel.

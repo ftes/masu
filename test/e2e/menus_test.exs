@@ -1,5 +1,5 @@
 defmodule MasuE2E.MenusTest do
-  use MasuE2E.Case, async: true, parameterize: MasuE2E.Case.projects()
+  use MasuE2E.Case, async: true
 
   # Menus of the app's own (Masu.Action), on the Menus page: the menu of a
   # cell, with the grid's items and the app's, and the app's items in a
